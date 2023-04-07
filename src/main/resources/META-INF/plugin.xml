@@ -178,6 +178,7 @@
        on how to target different products -->
   <depends>com.intellij.modules.lang</depends>
   <depends>com.intellij.modules.java</depends>
+  <depends>org.jetbrains.plugins.textmate</depends>
   <depends>com.intellij.properties</depends>
   <depends>com.redhat.devtools.intellij.telemetry</depends>
   <depends optional="true" config-file="plugin-maven.xml">org.jetbrains.idea.maven</depends>
@@ -215,6 +216,8 @@
               instance="QUTE"
               extensions="qute.html;qute.htm;qute.json;qute.txt;qute.yaml;qute.yml"
               implementationClass="com.redhat.devtools.intellij.qute.lang.QuteFileType"/>
+    <editorHighlighterProvider filetype="Qute" implementationClass="com.redhat.devtools.intellij.qute.lang.highlighting.QuteEditorHighlighterProvider"/>
+    <lang.syntaxHighlighterFactory language="Qute_" implementationClass="org.jetbrains.plugins.textmate.language.syntax.highlighting.TextMateSyntaxHighlighterFactory"/>
     <lang.fileViewProviderFactory language="Qute_"
                                   implementationClass="com.redhat.devtools.intellij.qute.lang.QuteFileViewProviderFactory"/>
     <lang.parserDefinition language="Qute_" implementationClass="com.redhat.devtools.intellij.qute.lang.QuteParserDefinition"/>
