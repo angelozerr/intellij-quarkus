@@ -8,17 +8,8 @@ import org.eclipse.microprofile.faulttolerance.Bulkhead;
 import org.eclipse.microprofile.faulttolerance.Retry;
 
 @Asynchronous
-@Bulkhead
+@Bulkhead(12)
 public class MyClient {
-
-	/**
-	 * The configured the max retries is 90 but the max duration is 1000ms. Once the
-	 * duration is reached, no more retries should be performed, even through it has
-	 * not reached the max retries.
-	 */
-	@Retry(maxRetries = 90, maxDuration = 1000)
-	public void serviceA() {
-	}
 
 	/**
 	 * There should be 0-800ms (jitter is -400ms - 400ms) delays between each
