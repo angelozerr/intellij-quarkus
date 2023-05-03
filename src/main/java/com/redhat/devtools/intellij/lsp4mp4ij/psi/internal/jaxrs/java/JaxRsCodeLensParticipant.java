@@ -12,7 +12,7 @@
 *     Red Hat Inc. - initial API and implementation
 *******************************************************************************/
 package com.redhat.devtools.intellij.lsp4mp4ij.psi.internal.jaxrs.java;
-
+ 
 import com.intellij.openapi.module.Module;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
