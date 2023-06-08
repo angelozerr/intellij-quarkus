@@ -11,12 +11,14 @@
 *******************************************************************************/
 package com.redhat.devtools.intellij.qute.psi;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.JavaModuleType;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.module.ModuleType;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.redhat.devtools.intellij.lsp4mp4ij.psi.core.utils.IPsiUtils;
@@ -370,8 +372,10 @@ public class QuteSupportForTemplate {
 			if (type == null) {
 				return null;
 			}
-			return getJavadoc(type, params.getDocumentFormat(), params.getMemberName(), params.getSignature(), utils,
-					monitor, new HashSet<>());
+			final var finalUtils = utils;
+			return ApplicationManager.getApplication()
+					.runReadAction((Computable<String>) () -> getJavadoc(type, params.getDocumentFormat(), params.getMemberName(), params.getSignature(), finalUtils,
+							monitor, new HashSet<>()));
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING,
 					"Error while collecting Javadoc for " + params.getSourceType() + "#" + params.getMemberName(), e);
