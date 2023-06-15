@@ -37,7 +37,6 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.util.ConcurrencyUtil;
 import com.intellij.util.messages.MessageBusConnection;
-import com.intellij.util.messages.Topic;
 import com.redhat.devtools.intellij.lsp4mp4ij.psi.core.PropertiesManager;
 import com.redhat.devtools.intellij.lsp4mp4ij.psi.core.project.PsiMicroProfileProjectManager;
 import com.redhat.devtools.intellij.lsp4mp4ij.psi.internal.core.ls.PsiUtilsLSImpl;
@@ -53,17 +52,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class QuarkusProjectService implements LibraryTable.Listener, BulkFileListener, ModuleListener, Disposable {
@@ -77,22 +67,9 @@ public class QuarkusProjectService implements LibraryTable.Listener, BulkFileLis
 
     private Set<Module> modulesBeingEnsured = new HashSet<>();
 
-    @Override
-    public void dispose() {
-        connection.disconnect();
-        executor.shutdown();
-    }
-
-    public interface Listener {
-        void libraryUpdated(Library library);
-        void sourceUpdated(List<Pair<Module, VirtualFile>> sources);
-    }
-
     public static QuarkusProjectService getInstance(Project project) {
         return ServiceManager.getService(project, QuarkusProjectService.class);
     }
-
-    public static final Topic<Listener> TOPIC = Topic.create(QuarkusProjectService.class.getName(), Listener.class);
 
     private final MessageBusConnection connection;
 
@@ -106,9 +83,9 @@ public class QuarkusProjectService implements LibraryTable.Listener, BulkFileLis
                     r -> new Thread(r, "Quarkus lib pool " + project.getName()));
         }
         LibraryTablesRegistrar.getInstance().getLibraryTable(project).addListener(this, project);
-        connection = ApplicationManager.getApplication().getMessageBus().connect(project);
+        connection = project.getMessageBus().connect();
         connection.subscribe(VirtualFileManager.VFS_CHANGES, this);
-        project.getMessageBus().connect().subscribe(ProjectTopics.MODULES, this);
+        connection.subscribe(ProjectTopics.MODULES, this);
         processModules();
     }
 
@@ -153,7 +130,6 @@ public class QuarkusProjectService implements LibraryTable.Listener, BulkFileLis
             });
         } else {
             processModules().thenRun(() -> {
-                project.getMessageBus().syncPublisher(TOPIC).libraryUpdated(library);
                 schemas.forEach((module, pair) -> {
                     pair.setRight(Boolean.FALSE);
                 });
@@ -182,7 +158,6 @@ public class QuarkusProjectService implements LibraryTable.Listener, BulkFileLis
                 p.setRight(Boolean.FALSE);
                 return p;
             }));
-            project.getMessageBus().syncPublisher(TOPIC).sourceUpdated(pairs);
         }
     }
 
@@ -200,15 +175,15 @@ public class QuarkusProjectService implements LibraryTable.Listener, BulkFileLis
         if (module == null || module.isDisposed()) {
             return null;
         }
-        if (!isJavaFile(file) && !isConfigSource(file, project)) {
+        if (!isJavaFile(file, project) && !isConfigSource(file, project)) {
             return null;
         }
         // Here a java file or a microprofile-config.properties, application.properties has been changed
         return Pair.of(module, file);
     }
 
-    private static boolean isJavaFile(VirtualFile file) {
-        return "java".equalsIgnoreCase(file.getExtension());
+    private static boolean isJavaFile(VirtualFile file, Project project) {
+        return PsiMicroProfileProjectManager.getInstance(project).isJavaFile(file);
     }
 
     private static boolean isConfigSource(VirtualFile file, Project project) {
@@ -218,7 +193,7 @@ public class QuarkusProjectService implements LibraryTable.Listener, BulkFileLis
     public VirtualFile getSchema(Module module) {
         MutablePair<VirtualFile, Boolean> schemaEntry = schemas.get(module);
         if (schemaEntry == null || !schemaEntry.getRight()) {
-            VirtualFile file = computeSchema(module, schemaEntry!=null?schemaEntry.getLeft():null);
+            VirtualFile file = computeSchema(module, schemaEntry != null ? schemaEntry.getLeft() : null);
             if (file != null) {
                 if (schemaEntry != null) {
                     schemaEntry.setRight(Boolean.TRUE);
@@ -228,7 +203,7 @@ public class QuarkusProjectService implements LibraryTable.Listener, BulkFileLis
                 }
             }
         }
-        return schemaEntry!=null?schemaEntry.getLeft():null;
+        return schemaEntry != null ? schemaEntry.getLeft() : null;
     }
 
     private static VirtualFile createJSONSchemaFile(String name) throws IOException {
@@ -256,7 +231,7 @@ public class QuarkusProjectService implements LibraryTable.Listener, BulkFileLis
                 });
             });
             return schemaFile;
-        } catch (IOException| ProcessCanceledException e) {
+        } catch (IOException | ProcessCanceledException e) {
             LOGGER.warn(e.getLocalizedMessage(), e);
         }
         return null;
@@ -276,4 +251,13 @@ public class QuarkusProjectService implements LibraryTable.Listener, BulkFileLis
     public void moduleRemoved(@NotNull Project project, @NotNull Module module) {
         moduleChanged(module);
     }
+
+
+    @Override
+    public void dispose() {
+        LibraryTablesRegistrar.getInstance().getLibraryTable(project).removeListener(this);
+        connection.disconnect();
+        executor.shutdown();
+    }
+
 }
