@@ -17,6 +17,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
@@ -40,7 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class LSPHighlightUsagesHandlerFactory implements HighlightUsagesHandlerFactory {
+public class LSPHighlightUsagesHandlerFactory implements HighlightUsagesHandlerFactory, DumbAware {
     private static final Logger LOGGER = Logger.getLogger(LSPHighlightUsagesHandlerFactory.class.getName());
 
     @Override

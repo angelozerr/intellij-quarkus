@@ -19,27 +19,35 @@ import com.intellij.lang.annotation.ExternalAnnotator;
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.project.DumbAware;
+import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import com.redhat.devtools.intellij.lsp4ij.LSPIJUtils;
 import com.redhat.devtools.intellij.lsp4ij.LSPVirtualFileWrapper;
+import com.redhat.devtools.intellij.lsp4ij.LanguageServerWrapper;
 import com.redhat.devtools.intellij.lsp4ij.LanguageServiceAccessor;
+import org.eclipse.lsp4j.CompletionItem;
+import org.eclipse.lsp4j.CompletionList;
+import org.eclipse.lsp4j.DocumentLink;
 import org.eclipse.lsp4j.DocumentLinkParams;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.eclipse.lsp4j.services.LanguageServer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.List;
+import java.util.concurrent.*;
 
 /**
  * Intellij {@link ExternalAnnotator} implementation which collect LSP document links and display them with underline style.
  */
-public class LSPDocumentLinkAnnotator extends ExternalAnnotator<LSPVirtualFileWrapper, LSPVirtualFileWrapper> {
+public class LSPDocumentLinkAnnotator extends ExternalAnnotator<LSPVirtualFileWrapper, LSPVirtualFileWrapper> implements DumbAware {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LSPDocumentLinkAnnotator.class);
 
@@ -52,27 +60,30 @@ public class LSPDocumentLinkAnnotator extends ExternalAnnotator<LSPVirtualFileWr
         }
         try {
             DocumentLinkParams params = new DocumentLinkParams(LSPIJUtils.toTextDocumentIdentifier(uri));
-            try {
-                LanguageServiceAccessor.getInstance(editor.getProject())
-                        .getLanguageServers(editor.getDocument(), capabilities -> capabilities.getDocumentLinkProvider() != null)
-                        .thenComposeAsync(servers ->
-                                CompletableFuture.allOf(
-                                        servers.stream()
-                                                .map(server ->
-                                                        server.getSecond().getTextDocumentService().documentLink(params)
-                                                                .thenAcceptAsync(documentLinks -> {
-                                                                            LSPVirtualFileWrapper.getLSPVirtualFileWrapper(file.getVirtualFile())
-                                                                                    .updateDocumentLink(documentLinks, server.getFirst());
-                                                                        }
-                                                                )
-                                                )
-                                                .toArray(CompletableFuture[]::new))
-                        ).get(1_000, TimeUnit.MILLISECONDS);
-            } catch (ExecutionException | TimeoutException e) {
-                LOGGER.warn(e.getLocalizedMessage(), e);
+            BlockingDeque<Pair<List<DocumentLink>, LanguageServerWrapper>> documentLinks = new LinkedBlockingDeque<>();
+            CompletableFuture<Void> future = LanguageServiceAccessor.getInstance(editor.getProject())
+                    .getLanguageServers(editor.getDocument(), capabilities -> capabilities.getDocumentLinkProvider() != null)
+                    .thenComposeAsync(languageServers -> CompletableFuture.allOf(languageServers.stream()
+                            .map(languageServer -> languageServer.getSecond().getTextDocumentService().documentLink(params)
+                                    .thenAcceptAsync(result -> documentLinks.add(new Pair<>(result, languageServer.getFirst()))
+                                    )
+                            )
+                            .toArray(CompletableFuture[]::new))
+                    );
+            while (!future.isDone() || !documentLinks.isEmpty()) {
+                ProgressManager.checkCanceled();
+                Pair<List<DocumentLink>, LanguageServerWrapper> pair = documentLinks.poll(25, TimeUnit.MILLISECONDS);
+                if (pair != null) {
+                    LSPVirtualFileWrapper.getLSPVirtualFileWrapper(file.getVirtualFile())
+                            .updateDocumentLink(pair.getFirst(), pair.getSecond());
+                }
             }
+
             return LSPVirtualFileWrapper.getLSPVirtualFileWrapper(file.getVirtualFile());
-        } catch (Exception e) {
+        } catch (ProcessCanceledException cancellation) {
+            throw cancellation;
+        } catch (RuntimeException | InterruptedException e) {
+            LOGGER.warn(e.getLocalizedMessage(), e);
             return null;
         }
     }

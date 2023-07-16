@@ -20,16 +20,20 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.psi.PsiFile;
 import com.redhat.devtools.intellij.lsp4ij.LSPIJUtils;
 import com.redhat.devtools.intellij.lsp4ij.LanguageServerWrapper;
 import com.redhat.devtools.intellij.lsp4ij.LanguageServiceAccessor;
+import com.redhat.devtools.intellij.lsp4ij.futures.FutureUtils;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.CompletionParams;
+import org.eclipse.lsp4j.jsonrpc.CancelChecker;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageServer;
 import org.jetbrains.annotations.NotNull;
@@ -45,16 +49,51 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class LSContentAssistProcessor extends CompletionContributor {
+public class LSContentAssistProcessor extends CompletionContributor implements DumbAware {
     private static final Logger LOGGER = LoggerFactory.getLogger(LSContentAssistProcessor.class);
 
+    private static final @NotNull Key<CompletableFuture<Void>> key = Key.create(LSContentAssistProcessor.class.getName());
+
+    private static final @NotNull Key<? super Long> key2 = Key.create(LSContentAssistProcessor.class.getName()+ "@");
+
+    private static class ProposalResult {
+
+        public final Either<List<CompletionItem>, CompletionList> completion;
+
+        public final LanguageServer languageServer;
+
+        public final CancelChecker cancelChecker;
+
+        private ProposalResult(Either<List<CompletionItem>, CompletionList> completion, LanguageServer languageServer, CancelChecker cancelChecker) {
+            this.completion = completion;
+            this.languageServer = languageServer;
+            this.cancelChecker = cancelChecker;
+        }
+    }
     @Override
     public void fillCompletionVariants(@NotNull CompletionParameters parameters, @NotNull CompletionResultSet result) {
+        if (result.isStopped()) {
+            return;
+        }
         Document document = parameters.getEditor().getDocument();
         Editor editor = parameters.getEditor();
         PsiFile file = parameters.getOriginalFile();
         Project project = file.getProject();
         int offset = parameters.getOffset();
+
+        ProgressManager.checkCanceled();
+
+        Long ID= System.currentTimeMillis();
+
+        file.putUserData(key2, ID);
+        CompletableFuture<Void> newFuture = null;
+        synchronized (key) {
+            CompletableFuture<Void> future = file.getUserData(key);
+            if (future != null && !future.isDone()) {
+                future.cancel(true);
+            }
+        }
+
         CompletableFuture<List<Pair<LanguageServerWrapper, LanguageServer>>> completionLanguageServersFuture = initiateLanguageServers(project, document);
         try {
             /*
@@ -63,28 +102,42 @@ public class LSContentAssistProcessor extends CompletionContributor {
              async processing is occuring on a separate thread.
              */
             CompletionParams params = LSPIJUtils.toCompletionParams(LSPIJUtils.toUri(document), offset, document);
-            BlockingDeque<Pair<Either<List<CompletionItem>, CompletionList>, LanguageServer>> proposals = new LinkedBlockingDeque<>();
-            CompletableFuture<Void> future = completionLanguageServersFuture
-                    .thenComposeAsync(languageServers -> CompletableFuture.allOf(languageServers.stream()
-                            .map(languageServer -> languageServer.getSecond().getTextDocumentService().completion(params)
-                                    .thenAcceptAsync(completion -> proposals.add(new Pair<>(completion, languageServer.getSecond()))))
-                            .toArray(CompletableFuture[]::new)));
-            while (!future.isDone() || !proposals.isEmpty()) {
-                ProgressManager.checkCanceled();
-                Pair<Either<List<CompletionItem>, CompletionList>, LanguageServer> pair = proposals.poll(25, TimeUnit.MILLISECONDS);
-                if (pair != null) {
-                    result.addAllElements(toProposals(file, editor, document, offset, pair.getFirst(),
-                            pair.getSecond()));
+            BlockingDeque<ProposalResult> proposals = new LinkedBlockingDeque<>();
+            newFuture = FutureUtils.computeAsyncCompose(cancelChecker ->
+                    completionLanguageServersFuture
+                            .thenComposeAsync(languageServers -> cancelChecker.trackAndExecute(() ->
+                                    CompletableFuture.allOf(languageServers.stream()
+                                            .map(languageServer ->
+                                                    cancelChecker.trackAndExecute(() -> languageServer.getSecond().getTextDocumentService().completion(params))
+                                                            .thenAcceptAsync(completion -> proposals.add(new ProposalResult(completion, languageServer.getSecond(), cancelChecker))))
+                                            .toArray(CompletableFuture[]::new)))));
+            file.putUserData(key, newFuture);
+            while (!newFuture.isDone() || !proposals.isEmpty()) {
+                if(ID != file.getUserData(key2)) {
+                    throw new ProcessCanceledException();
                 }
 
+                ProgressManager.checkCanceled();
+                ProposalResult pair = proposals.poll(25, TimeUnit.MILLISECONDS);
+                if (pair != null) {
+                    pair.cancelChecker.checkCanceled();
+
+                    result.addAllElements(toProposals(file, editor, document, offset, pair.completion,
+                            pair.languageServer));
+                }
             }
         } catch (ProcessCanceledException cancellation) {
             throw cancellation;
         } catch (RuntimeException | InterruptedException e) {
             LOGGER.warn(e.getLocalizedMessage(), e);
             result.addElement(createErrorProposal(offset, e));
+        } finally {
+            synchronized (key) {
+                if (newFuture != null && !newFuture.isDone()) {
+                    newFuture.cancel(true);
+                }
+            }
         }
-        super.fillCompletionVariants(parameters, result);
     }
 
     private Collection<? extends LookupElement> toProposals(PsiFile file, Editor editor, Document document,
@@ -100,6 +153,22 @@ public class LSContentAssistProcessor extends CompletionContributor {
                     .collect(Collectors.toList());
         }
         return Collections.emptyList();
+    }
+
+    private <T> CompletableFuture<T> addFuture(CompletableFuture<T> f, List<CompletableFuture> futures) {
+        futures.add(f);
+        return f;
+    }
+
+    private void cancel(List<CompletableFuture> futures, PsiFile file) {
+        if (futures != null) {
+            futures.forEach(f -> {
+                if (!f.isDone()) {
+                    f.cancel(true);
+                }
+            });
+        }
+        //file.putUserData(key,null);
     }
 
     private LSIncompleteCompletionProposal createLookupItem(PsiFile file, Editor editor, int offset,

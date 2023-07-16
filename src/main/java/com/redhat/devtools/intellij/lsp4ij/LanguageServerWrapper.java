@@ -599,7 +599,7 @@ public class LanguageServerWrapper {
      * @since 0.6
      */
     private boolean supportsWorkspaceFolderCapability() {
-        if (this.initializeFuture != null) {
+        /*if (this.initializeFuture != null) {
             try {
                 this.initializeFuture.get(1, TimeUnit.SECONDS);
             } catch (ExecutionException | TimeoutException e) {
@@ -609,7 +609,8 @@ public class LanguageServerWrapper {
                 Thread.currentThread().interrupt();
             }
         }
-        return initiallySupportsWorkspaceFolders || supportsWorkspaceFolders(serverCapabilities);
+        return initiallySupportsWorkspaceFolders || supportsWorkspaceFolders(serverCapabilities);*/
+        return false;
     }
 
     /**
