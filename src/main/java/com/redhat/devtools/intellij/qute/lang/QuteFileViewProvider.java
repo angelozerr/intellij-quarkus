@@ -58,6 +58,7 @@ public class QuteFileViewProvider extends MultiplePsiFilesPerDocumentFileViewPro
         return fileType instanceof LanguageFileType ? ((LanguageFileType) fileType).getLanguage() : QuteLanguage.INSTANCE;
     }
 
+    @Override
     protected PsiFile createFile(@NotNull Language lang) {
         if (lang == getTemplateDataLanguage()) {
             final ParserDefinition parserDefinition = LanguageParserDefinitions.INSTANCE.forLanguage(lang);

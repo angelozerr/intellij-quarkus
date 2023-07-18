@@ -19,12 +19,10 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.FileViewProvider;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.tree.IFileElementType;
 import com.intellij.psi.tree.TokenSet;
-import com.redhat.devtools.intellij.qute.lang.psi.QuteLexer;
-import com.redhat.devtools.intellij.qute.lang.psi.QuteParser;
-import com.redhat.devtools.intellij.qute.lang.psi.QutePsiFile;
-import com.redhat.devtools.intellij.qute.lang.psi.QuteElementTypes;
+import com.redhat.devtools.intellij.qute.lang.psi.*;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -59,8 +57,20 @@ public class QuteParserDefinition implements ParserDefinition {
 
     @Override
     public @NotNull PsiElement createElement(ASTNode node) {
-        // This method seems never called, since whe have defined a QuteASTFactory.
-        return new ASTWrapperPsiElement(node);
+        IElementType type = node.getElementType();
+        if (type == QuteElementTypes.QUTE_CONTENT) {
+            return new QutePsiContent(node);
+        }
+        if (type == QuteElementTypes.QUTE_SECTION_BLOCK) {
+            return new QutePsiSectionBlock(node);
+        }
+        if (type == QuteElementTypes.QUTE_START_SECTION) {
+            return new QutePsiStartTag(node);
+        }
+        if (type == QuteElementTypes.QUTE_END_SECTION) {
+            return new QutePsiEndTag(node);
+        }
+        return new QutePsiElement(node);
     }
 
     @Override

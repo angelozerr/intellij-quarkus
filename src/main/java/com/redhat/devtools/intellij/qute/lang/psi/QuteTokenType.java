@@ -14,6 +14,7 @@
 package com.redhat.devtools.intellij.qute.lang.psi;
 
 import com.intellij.psi.tree.IElementType;
+import com.intellij.psi.tree.TokenSet;
 
 /**
  * Qute token type.
@@ -64,4 +65,6 @@ public interface QuteTokenType {
     IElementType QUTE_PARAMETER_NAME =  new QuteElementType("QUTE_PARAMETER_NAME");
     IElementType QUTE_PARAMETER_ASSIGN =  new QuteElementType("QUTE_PARAMETER_ASSIGN");
     IElementType QUTE_PARAMETER_VALUE =  new QuteElementType("QUTE_PARAMETER_VALUE");
+
+    TokenSet TAGS = TokenSet.create(QUTE_START_TAG_OPEN);
 }

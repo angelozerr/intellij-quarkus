@@ -1,10 +1,12 @@
 // Copyright 2000-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package com.redhat.devtools.intellij.qute.lang.format;
 
+import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.intellij.formatting.*;
 import com.intellij.formatting.templateLanguages.*;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.codeStyle.CodeStyleSettings;
 import com.intellij.psi.formatter.DocumentBasedFormattingModel;
@@ -12,10 +14,12 @@ import com.intellij.psi.formatter.FormattingDocumentModelImpl;
 import com.intellij.psi.formatter.common.AbstractBlock;
 import com.intellij.psi.formatter.xml.HtmlPolicy;
 import com.intellij.psi.formatter.xml.SyntheticBlock;
+import com.intellij.psi.impl.source.tree.CompositeElement;
 import com.intellij.psi.templateLanguages.SimpleTemplateLanguageFormattingModelBuilder;
 import com.intellij.psi.tree.IElementType;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlTag;
-import com.redhat.devtools.intellij.qute.lang.psi.QuteElementTypes;
+import com.redhat.devtools.intellij.qute.lang.psi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,10 +28,8 @@ import java.util.List;
 import static com.intellij.psi.formatter.WrappingUtil.getWrapType;
 
 /**
- * Template aware formatter which provides formatting for Qute syntax and delegates formatting
+ * Template aware formatter which provides formatting for Handlebars/Mustache syntax and delegates formatting
  * for the templated language to that languages formatter
- *
- * This class is a copy/paste from https://github.com/JetBrains/intellij-plugins/blob/master/Qute/src/com/dmarcotte/Qute/format/HbFormattingModelBuilder.java adapted for Qute.
  */
 public class QuteHtmlFormattingModelBuilder extends TemplateLanguageFormattingModelBuilder {
 
@@ -40,7 +42,9 @@ public class QuteHtmlFormattingModelBuilder extends TemplateLanguageFormattingMo
                                                            @NotNull CodeStyleSettings codeStyleSettings) {
     final FormattingDocumentModelImpl documentModel = FormattingDocumentModelImpl.createOn(node.getPsi().getContainingFile());
     HtmlPolicy policy = new HtmlPolicy(codeStyleSettings, documentModel);
-    return new QuteBlock(node, wrap, alignment, this, codeStyleSettings, foreignChildren, policy);
+    return QuteTokenType.TAGS.contains(node.getElementType()) ?
+           new HandlebarsTagBlock(node, wrap, alignment, this, codeStyleSettings, foreignChildren, policy) :
+           new HandlebarsBlock(node, wrap, alignment, this, codeStyleSettings, foreignChildren, policy);
   }
 
   /**
@@ -51,6 +55,13 @@ public class QuteHtmlFormattingModelBuilder extends TemplateLanguageFormattingMo
    */
   @Override
   public @NotNull FormattingModel createModel(@NotNull FormattingContext formattingContext) {
+    //if (!HbConfig.isFormattingEnabled()) {
+    if (false) {
+      // formatting is disabled, return the no-op formatter (note that this still delegates formatting
+      // to the templated language, which lets the users manage that separately)
+      return new SimpleTemplateLanguageFormattingModelBuilder().createModel(formattingContext);
+    }
+
     final PsiFile file = formattingContext.getContainingFile();
     Block rootBlock;
 
@@ -79,13 +90,73 @@ public class QuteHtmlFormattingModelBuilder extends TemplateLanguageFormattingMo
     return false;
   }
 
-  private static class QuteBlock extends TemplateLanguageBlock {
+  private static class HandlebarsTagBlock extends HandlebarsBlock {
+    @NotNull
+    private final Alignment myChildAttributeAlignment;
+
+
+    HandlebarsTagBlock(@NotNull ASTNode node,
+                       Wrap wrap,
+                       Alignment alignment,
+                       @NotNull TemplateLanguageBlockFactory blockFactory,
+                       @NotNull CodeStyleSettings settings,
+                       @Nullable List<DataLanguageBlockWrapper> foreignChildren,
+                       HtmlPolicy htmlPolicy) {
+      super(node, wrap, alignment, blockFactory, settings, foreignChildren, htmlPolicy);
+
+      myChildAttributeAlignment = Alignment.createAlignment();
+    }
+
+    @NotNull
+    @Override
+    public ChildAttributes getChildAttributes(int newChildIndex) {
+      if (newChildIndex > 0) {
+        List<Block> blocks = getSubBlocks();
+        if (blocks.size() > newChildIndex - 1) {
+          Block prevBlock = blocks.get(newChildIndex - 1);
+          if (prevBlock instanceof AbstractBlock) {
+            ASTNode node = ((AbstractBlock)prevBlock).getNode();
+            if (isAttribute(node) ||
+                node.getElementType() == QuteElementTypes.QUTE_SECTION_BLOCK) {
+              return new ChildAttributes(null, prevBlock.getAlignment());
+            }
+          }
+        }
+      }
+
+      return super.getChildAttributes(newChildIndex);
+    }
+
+    @Override
+    protected Alignment createChildAlignment(ASTNode child) {
+      if (isAttribute(child)) {
+        return myChildAttributeAlignment;
+      }
+      return super.createChildAlignment(child);
+    }
+
+    @Override
+    protected Wrap createChildWrap(ASTNode child) {
+      if (isAttribute(child)) {
+        return Wrap.createWrap(getWrapType(myHtmlPolicy.getAttributesWrap()), false);
+      }
+      return null;
+    }
+  }
+
+  private static boolean isAttribute(ASTNode child) {
+    IElementType type = child.getElementType();
+    //return type == HbTokenTypes.PARAM || type == HbTokenTypes.HASH;
+    return false;
+  }
+
+  private static class HandlebarsBlock extends TemplateLanguageBlock {
 
     @NotNull
     protected final HtmlPolicy myHtmlPolicy;
 
 
-    QuteBlock(@NotNull ASTNode node,
+    HandlebarsBlock(@NotNull ASTNode node,
                     Wrap wrap,
                     Alignment alignment,
                     @NotNull TemplateLanguageBlockFactory blockFactory,
@@ -96,11 +167,111 @@ public class QuteHtmlFormattingModelBuilder extends TemplateLanguageFormattingMo
       myHtmlPolicy = htmlPolicy;
     }
 
+    /**
+     * We indented the code in the following manner, playing nice with the formatting from the language
+     * we're templating:
+     * <pre>
+     *   * Block expressions:
+     *      {{#foo}}
+     *          INDENTED_CONTENT
+     *      {{/foo}}
+     *   * Inverse block expressions:
+     *      {{^bar}}
+     *          INDENTED_CONTENT
+     *      {{/bar}}
+     *   * Conditional expressions using the "else" syntax:
+     *      {{#if test}}
+     *          INDENTED_CONTENT
+     *      {{else}}
+     *          INDENTED_CONTENT
+     *      {{/if}}
+     *   * Conditional expressions using the "^" syntax:
+     *      {{#if test}}
+     *          INDENTED_CONTENT
+     *      {{^}}
+     *          INDENTED_CONTENT
+     *      {{/if}}
+     * </pre>
+     * <p/>
+     * This naturally maps to any "statements" expression in the grammar which is not a child of the
+     * root "program" element.  See {@link com.dmarcotte.handlebars.parsing.HbParsing#parseProgram} and
+     * {@link com.dmarcotte.handlebars.parsing.HbParsing#parseStatement(com.intellij.lang.PsiBuilder)} for the
+     * relevant parts of the parser.
+     * <p/>
+     * To understand the approach in this method, consider the following:
+     * <pre>
+     * {{#foo}}
+     * BEGIN_STATEMENTS
+     * TEMPLATE_STUFF
+     * END_STATEMENTS
+     * {{/foo}}
+     * </pre>
+     * <p/>
+     * then formatting looks easy. Simply apply an indent (represented here by "[hb_indent]") to the STATEMENTS and call it a day:
+     * <pre>
+     * {{#foo}}
+     * [hb_indent]BEGIN_STATEMENTS
+     * [hb_indent]TEMPLATE_STUFF
+     * [hb_indent]END_STATEMENTS
+     * {{/foo}}
+     * </pre>
+     * <p/>
+     * However, if we're contained in templated language block, it's going to provide some indents of its own
+     * (call them "[tl_indent]") which quickly leads to undesirable double-indenting:
+     * <p/>
+     * <pre>
+     * &lt;div>
+     * [tl_indent]{{#foo}}
+     *            [hb_indent]BEGIN_STATEMENTS
+     *            [tl_indent][hb_indent]TEMPLATE_STUFF
+     *            [hb_indent]END_STATEMENTS
+     * [tl_indent]{{/foo}}
+     * &lt;/div>
+     * </pre>
+     * So to behave correctly in both situations, we indent STATEMENTS from the "outside" anytime we're not wrapped
+     * in a templated language block, and we indent STATEMENTS from the "inside" (i.e. apply an indent to each non-template
+     * language STATEMENT inside the STATEMENTS) to interleave nicely with templated-language provided indents.
+     */
     @Override
     public Indent getIndent() {
       // ignore whitespace
-      if (myNode.getText().trim().isEmpty()) {
+      if (myNode.getText().trim().length() == 0) {
         return Indent.getNoneIndent();
+      }
+
+      if (isAttribute(myNode)) {
+        return null;
+      }
+
+      if (isNonRootStatementsElement(myNode.getPsi())) {
+        // we're computing the indent for a non-root STATEMENTS:
+        //      if it's not contained in a foreign block, indent!
+        DataLanguageBlockWrapper foreignBlockParent = getForeignBlockParent(false);
+        if (foreignBlockParent == null) {
+          return Indent.getNormalIndent();
+        }
+
+        // otherwise, only indent if our foreign parent isn't indenting us
+        if (foreignBlockParent.getNode() instanceof XmlTag) {
+          XmlTag xmlTag = (XmlTag) foreignBlockParent.getNode();
+          if (!myHtmlPolicy.indentChildrenOf(xmlTag)) {
+            // no indent from xml parent, add our own
+            return Indent.getNormalIndent();
+          }
+        }
+
+        return Indent.getNoneIndent();
+      }
+
+      if (myNode.getTreeParent() != null
+          && isNonRootStatementsElement(myNode.getTreeParent().getPsi())) {
+        // we're computing the indent for a direct descendant of a non-root STATEMENTS:
+        //      if its Block parent (i.e. not HB AST Tree parent) is a Handlebars block
+        //      which has NOT been indented, then have the element provide the indent itself
+        if (getParent() instanceof HandlebarsBlock
+            && ((HandlebarsBlock)getParent()).getIndent() == Indent.getNoneIndent()) {
+          return Indent.getNormalIndent();
+        }
       }
 
       // any element that is the direct descendant of a foreign block gets an indent
@@ -115,6 +286,14 @@ public class QuteHtmlFormattingModelBuilder extends TemplateLanguageFormattingMo
       }
 
       return Indent.getNoneIndent();
+    }
+
+    private boolean isNonRootStatementsElement(PsiElement element) {
+      // we're a non-root statements if we're of type statements, and we have a statements parent
+      if (!(element instanceof QutePsiContent)) {
+        return false;
+      }
+     return PsiTreeUtil.findFirstParent(element, true, element1 -> element1 instanceof QutePsiContent) != null;
     }
 
     @Override
@@ -136,6 +315,25 @@ public class QuteHtmlFormattingModelBuilder extends TemplateLanguageFormattingMo
     @NotNull
     @Override
     public ChildAttributes getChildAttributes(int newChildIndex) {
+      /*
+       * We indent if we're in a BLOCK_WRAPPER (note that this works nicely since Enter can only be invoked
+       * INSIDE a block (i.e. after the open block 'stache).
+       *
+       * Also indent if we are wrapped in a block created by the templated language
+       */
+      if ((myNode.getElementType() == QuteElementTypes.QUTE_SECTION_BLOCK)
+          || (getParent() instanceof DataLanguageBlockWrapper
+              // hack alert: the following check opportunistically fixes com.dmarcotte.handlebars.format.HbFormatOnEnterTest#testSimpleBlockInDiv8
+              //      and com.dmarcotte.handlebars.format.HbFormatOnEnterTest#testSimpleBlockInDiv8
+              //      but isn't really based on solid logic (why do these checks work?), so when there's inevitably a
+              //      format-on-enter bug, this is the first bit of code to be suspicious of
+             /* &&
+              (myNode.getElementType() != HbTokenTypes.STATEMENTS
+               || newChildIndex != 0
+               || myNode.getTreeNext() instanceof PsiErrorElement)*/)) {
+        return new ChildAttributes(Indent.getNormalIndent(), null);
+      }
+
       return new ChildAttributes(Indent.getNoneIndent(), null);
     }
 
@@ -155,7 +353,7 @@ public class QuteHtmlFormattingModelBuilder extends TemplateLanguageFormattingMo
           foreignBlockParent = (DataLanguageBlockWrapper)parent;
           break;
         }
-        else if (immediate && parent instanceof QuteBlock) {
+        else if (immediate && parent instanceof HandlebarsBlock) {
           break;
         }
         parent = parent.getParent();

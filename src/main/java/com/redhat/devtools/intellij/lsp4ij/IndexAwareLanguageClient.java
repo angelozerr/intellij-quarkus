@@ -22,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -83,6 +84,10 @@ public class IndexAwareLanguageClient extends LanguageClientImpl {
           result = ApplicationManager.getApplication().runReadAction((Computable<R>)() -> function.apply(indicator));
         } else {
           result = function.apply(indicator);
+        }
+        if (isDisposed()) {
+          // The task is finished correctly
+          throw new CancellationException();
         }
         future.complete(result);
         done = true;

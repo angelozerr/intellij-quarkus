@@ -33,7 +33,11 @@ public class QuteElementTypes {
 
     public static final IElementType QUTE_EXPRESSION = new QuteElementType("QUTE_EXPRESSION");
 
+    public static final IElementType QUTE_SECTION_BLOCK = new QuteElementType("QUTE_SECTION_BLOCK");
+
     public static final IElementType QUTE_START_SECTION = new QuteElementType("QUTE_START_SECTION");
+
+    public static final IElementType QUTE_END_SECTION = new QuteElementType("QUTE_END_SECTION");
 
     public static final IElementType QUTE_STRING = new QuteElementType("QUTE_STRING");
 

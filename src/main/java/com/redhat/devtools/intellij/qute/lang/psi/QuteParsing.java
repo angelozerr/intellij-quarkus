@@ -32,8 +32,13 @@ public class QuteParsing {
     }
 
     public void parseTemplate() {
-        final PsiBuilder.Marker template = mark();
+        //final PsiBuilder.Marker template = mark();
+        parseTemplateContent();
+        //template.done(QUTE_CONTENT);
+    }
 
+    private void parseTemplateContent() {
+        final PsiBuilder.Marker template = mark();
         while (isCommentToken(token())) {
             parseComment();
         }
@@ -43,34 +48,39 @@ public class QuteParsing {
             if (tt == QUTE_START_EXPRESSION) {
                 parseExpression();
             } else if (tt == QUTE_START_TAG_OPEN) {
-                parseStartSection();
-            } else if (isCommentToken(tt)) {
-                parseComment();
+                parseSectionBlock();
+            } else if (tt == QUTE_END_TAG_OPEN) {
+                parseEndSection();
             } else if (tt == QUTE_TEXT) {
                 parseText();
+            } else if (isCommentToken(tt)) {
+                parseComment();
             } else {
                 advance();
             }
         }
-
         template.done(QUTE_CONTENT);
     }
 
-    private void parseStartSection() {
-        final PsiBuilder.Marker startSection = mark();
-        advance();
+    private void parseSectionBlock() {
+        final PsiBuilder.Marker blockMarker = mark();
+        parseStartSection();
+        parseTemplateContent();
+        blockMarker.done(QUTE_SECTION_BLOCK);
+    }
 
+    private void parseStartSection() {
+        final PsiBuilder.Marker startSectionMarker = mark();
+        advance();
         while (true) {
             final IElementType tt = token();
             if (tt == null) {
                 break;
-            } else if (tt == QUTE_EXPRESSION) {
-                // Comment content : foo in {! foo !}
+            }else if (tt == QUTE_TEXT) {
+                    parseText();
+             } else if (tt == QUTE_START_TAG) {
                 advance();
                 continue;
-            } else if (tt == QUTE_END_EXPRESSION) {
-                // End expression: }
-                advance();
             } else if (tt == QUTE_STRING) {
                 final PsiBuilder.Marker string = mark();
                 advance();
@@ -91,21 +101,40 @@ public class QuteParsing {
                 advance();
                 propertyPart.done(QUTE_EXPRESSION_PROPERTY_PART);
                 continue;
-            } else {
-                //final PsiBuilder.Marker error = mark();
+            } else if (tt == QUTE_EXPRESSION_WHITESPACE) {
                 advance();
-                // error.error("BAD comments!");
-                continue;
+            } else if (tt == QUTE_START_TAG_CLOSE || tt == QUTE_START_TAG_SELF_CLOSE) {
+                advance();
+                break;
+            } else {
+                break;
             }
-            break;
         }
-        startSection.done(QUTE_START_SECTION);
+        startSectionMarker.done(QUTE_START_SECTION);
+    }
+
+    private void parseEndSection() {
+        final PsiBuilder.Marker endSectionMarker = mark();
+        advance();
+        while (true) {
+            final IElementType tt = token();
+            if (tt == null) {
+                break;
+            } else if (tt == QUTE_END_TAG) {
+                advance();
+                continue;
+            } else if (tt == QUTE_END_TAG_CLOSE) {
+                advance();
+                break;
+            } else {
+                break;
+            }
+        }
+        endSectionMarker.done(QUTE_END_SECTION);
     }
 
     private void parseText() {
-        final PsiBuilder.Marker text = mark();
-        advance();
-        text.done(QUTE_TEXT);
+        advance(); // eat non Qute content
     }
 
     private void parseExpression() {

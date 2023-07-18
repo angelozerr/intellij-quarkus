@@ -13,12 +13,13 @@
  *******************************************************************************/
 package com.redhat.devtools.intellij.qute.lang;
 
+
 import com.intellij.lang.ASTFactory;
+import com.intellij.psi.impl.source.tree.CompositeElement;
 import com.intellij.psi.impl.source.tree.LeafElement;
 import com.intellij.psi.templateLanguages.OuterLanguageElementImpl;
 import com.intellij.psi.tree.IElementType;
-import com.redhat.devtools.intellij.qute.lang.psi.QuteToken;
-import com.redhat.devtools.intellij.qute.lang.psi.QuteElementTypes;
+import com.redhat.devtools.intellij.qute.lang.psi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,4 +37,5 @@ public class QuteASTFactory extends ASTFactory {
         // Qute content
         return new QuteToken(type, text);
     }
+
 }
