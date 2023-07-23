@@ -37,6 +37,12 @@ public class ServerExtensionPointBean extends BaseKeyedLazyInstance<StreamConnec
     @Attribute("lastDocumentDisconnectedTimeout")
     public Integer lastDocumentDisconnectedTimeout;
 
+    /**
+     * The resource path of the icon displayed on the language server settings and LSP console.
+     */
+    @Attribute("icon")
+    public String icon;
+
     public Class getClientImpl() throws ClassNotFoundException {
         if (clientClass == null) {
             clientClass = getPluginDescriptor().getPluginClassLoader().loadClass(clientImpl);

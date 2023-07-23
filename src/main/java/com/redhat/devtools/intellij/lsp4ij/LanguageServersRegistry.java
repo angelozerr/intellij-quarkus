@@ -14,11 +14,14 @@ import com.intellij.icons.AllIcons;
 import com.intellij.lang.Language;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.redhat.devtools.intellij.lsp4ij.server.StreamConnectionProvider;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.jsonrpc.validation.NonNull;
 import org.eclipse.lsp4j.services.LanguageServer;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +49,7 @@ public class LanguageServersRegistry {
         public final String description;
         public final int lastDocumentDisconnectedTimeout;
 
-        public LanguageServerDefinition(@Nonnull String id, @Nonnull String label, String description, boolean isSingleton, Integer lastDocumentDisconnectedTimeout) {
+        public LanguageServerDefinition(@Nonnull String id, @Nonnull String label, String description, boolean isSingleton, Integer lastDocumentDisconnectedTimeout, String icon) {
             this.id = id;
             this.label = label;
             this.description = description;
@@ -77,13 +80,19 @@ public class LanguageServersRegistry {
         public <S extends LanguageServer> Launcher.Builder<S> createLauncherBuilder() {
             return new Launcher.Builder<>();
         }
+
+        public @NotNull Icon getIcon() {
+            return AllIcons.Webreferences.Server;
+        }
     }
 
     static class ExtensionLanguageServerDefinition extends LanguageServerDefinition {
         private final ServerExtensionPointBean extension;
 
+        private Icon icon;
+
         public ExtensionLanguageServerDefinition(ServerExtensionPointBean element) {
-            super(element.id, element.label, element.description, element.singleton, element.lastDocumentDisconnectedTimeout);
+            super(element.id, element.label, element.description, element.singleton, element.lastDocumentDisconnectedTimeout, element.icon);
             this.extension = element;
         }
 
@@ -129,6 +138,26 @@ public class LanguageServersRegistry {
                 }
             }
             return super.getServerInterface();
+        }
+
+        @Override
+        public @NotNull Icon getIcon() {
+            if (icon != null) {
+                return icon;
+            }
+            String iconPath = extension.icon;
+            if (StringUtils.isNotBlank(iconPath)) {
+                try {
+                    icon = IconLoader.findIcon(iconPath, extension.getLoaderForClass());
+                }
+                catch (Exception e) {
+                 LOGGER.error("Cannot retrieve server icon '" + iconPath + "'.", e);
+                }
+            }
+            if (icon == null) {
+                icon = super.getIcon();
+            }
+            return icon;
         }
     }
 
@@ -179,6 +208,10 @@ public class LanguageServersRegistry {
     }
 
     public Icon getServerIcon(String serverId) {
+        LanguageServerDefinition serverDefinition = getDefinition(serverId);
+        if (serverDefinition != null) {
+            return serverDefinition.getIcon();
+        }
         LanguageServerIconProviderDefinition iconProvider = serverIcons.get(serverId);
         Icon icon = iconProvider != null ? iconProvider.getIcon() : null;
         return icon != null ? icon : AllIcons.Webreferences.Server;
