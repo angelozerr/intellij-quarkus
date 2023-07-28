@@ -17,6 +17,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -421,7 +422,7 @@ public class LanguageServiceAccessor {
     @Deprecated
     private LanguageServerWrapper getLSWrapperForConnection(@Nonnull Module project,
                                                             @Nonnull LanguageServersRegistry.LanguageServerDefinition serverDefinition, @Nullable URI initialPath) throws IOException {
-        if (!serverDefinition.isEnabled()) {
+        if (!serverDefinition.isEnabled() || DumbService.getInstance(this.project).isDumb()) {
             // don't return a language server wrapper for the given server definition
             return null;
         }
@@ -447,7 +448,7 @@ public class LanguageServiceAccessor {
 
     private LanguageServerWrapper getLSWrapperForConnection(Document document,
                                                             LanguageServersRegistry.LanguageServerDefinition serverDefinition, URI initialPath) throws IOException {
-        if (!serverDefinition.isEnabled()) {
+        if (!serverDefinition.isEnabled() || DumbService.getInstance(project).isDumb()) {
             // don't return a language server wrapper for the given server definition
             return null;
         }

@@ -14,6 +14,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManagerListener;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -41,8 +42,16 @@ public class ConnectDocumentToLanguageServerSetupParticipant implements ProjectM
         Document document = FileDocumentManager.getInstance().getDocument(file);
         if (document != null) {
             // Force the start of all languages servers mapped with the given file
-            LanguageServiceAccessor.getInstance(source.getProject())
-                    .getLanguageServers(document, capabilities -> true);
+            if (DumbService.getInstance(source.getProject()).isDumb()) {
+                DumbService.getInstance(source.getProject()).runWhenSmart(() -> {
+                    LanguageServiceAccessor.getInstance(source.getProject())
+                            .getLanguageServers(document, capabilities -> true);
+
+                });
+            } else {
+                LanguageServiceAccessor.getInstance(source.getProject())
+                        .getLanguageServers(document, capabilities -> true);
+            }
         }
     }
 
