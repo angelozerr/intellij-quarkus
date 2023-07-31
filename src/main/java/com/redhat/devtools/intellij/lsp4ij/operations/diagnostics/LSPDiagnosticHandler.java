@@ -65,10 +65,12 @@ public class LSPDiagnosticHandler implements Consumer<PublishDiagnosticsParams> 
                 // Update LSP diagnostic reported by the language server id
                 wrapper.updateDiagnostics(params.getDiagnostics(), languageServerWrapper);
             }
-            // Trigger Intellij validation to execute
-            // {@link LSPDiagnosticAnnotator}.
-            // which translates LSP Diagnostics into Intellij Annotation
-            DaemonCodeAnalyzer.getInstance(module.getProject()).restart(psiFile);
+            if (!ApplicationManager.getApplication().isDispatchThread()) {
+                // Trigger Intellij validation to execute
+                // {@link LSPDiagnosticAnnotator}.
+                // which translates LSP Diagnostics into Intellij Annotation
+                DaemonCodeAnalyzer.getInstance(module.getProject()).restart(psiFile);
+            }
         });
     }
 }

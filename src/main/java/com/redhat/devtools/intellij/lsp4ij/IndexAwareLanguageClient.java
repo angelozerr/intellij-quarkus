@@ -10,6 +10,8 @@
  ******************************************************************************/
 package com.redhat.devtools.intellij.lsp4ij;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.intellij.ide.lightEdit.LightEdit;
 import com.intellij.ide.util.importProject.ProgressIndicatorWrapper;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ModalityState;
@@ -26,17 +28,26 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.util.containers.ContainerUtil;
+import com.jetbrains.jsonSchema.extension.JsonSchemaFileProvider;
+import com.jetbrains.jsonSchema.impl.JsonSchemaServiceImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 public class IndexAwareLanguageClient extends LanguageClientImpl {
     private static final Logger LOGGER = LoggerFactory.getLogger(IndexAwareLanguageClient.class);
+
+    private ExecutorService listener = Executors
+            .newFixedThreadPool(5, new ThreadFactoryBuilder().setNameFormat("LSP --- III").build());
 
     public IndexAwareLanguageClient(Project project) {
         super(project);
@@ -64,13 +75,14 @@ public class IndexAwareLanguageClient extends LanguageClientImpl {
      * @return the output of the function
      */
     protected <R> CompletableFuture<R> runAsBackground(String title, Function<ProgressIndicator, R> function, boolean inReadAction) {
+        inReadAction = false;
         CompletableFuture<R> future = new CompletableFuture<>();
         CompletableFuture.runAsync(() -> {
             Runnable task = () -> ProgressManager.getInstance().run(new Task.Backgroundable(getProject(), title) {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
                     // Wrap the given progress indicator to cancel the task when the language client is disposed (when language server is stopped, ex : when all files are closed)
-                    runTask(new LSPProgressIndicator(indicator, IndexAwareLanguageClient.this), future, function, inReadAction);
+                    runTask(new LSPProgressIndicator(indicator, IndexAwareLanguageClient.this), future, function, false);
                 }
 
                 @Override
@@ -78,12 +90,20 @@ public class IndexAwareLanguageClient extends LanguageClientImpl {
                     return true;
                 }
             });
+
             if (DumbService.getInstance(getProject()).isDumb()) {
-                DumbService.getInstance(getProject()).runWhenSmart(task);
+                DumbService.getInstance(getProject()).runReadActionInSmartMode(task);
             } else {
-                task.run();
+                if (ApplicationManager.getApplication().isDispatchThread()) {
+                    ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                        if (getProject().isDisposed()) return;
+                        DumbService.getInstance(getProject()).runReadActionInSmartMode(task);
+                    });
+                } else {
+                    task.run();
+                }
             }
-        });
+        }, listener);
         return future;
     }
 

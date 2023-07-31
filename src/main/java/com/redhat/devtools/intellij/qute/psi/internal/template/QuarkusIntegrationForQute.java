@@ -23,6 +23,7 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.roots.ModuleRootManager;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.newvfs.impl.FsRoot;
 import com.redhat.devtools.intellij.lsp4mp4ij.psi.core.utils.IPsiUtils;
 import com.redhat.devtools.intellij.lsp4ij.LSPIJUtils;
 import com.redhat.devtools.intellij.qute.psi.internal.template.datamodel.DataModelProviderRegistry;
@@ -79,7 +80,9 @@ public class QuarkusIntegrationForQute {
 		// 'templates.tags' entry
 		VirtualFile[] roots = ModuleRootManager.getInstance(javaProject).orderEntries().classes().getRoots();
 		for(VirtualFile root : roots) {
-			collectUserTags(root, tags);
+			if (root instanceof FsRoot) {
+				collectUserTags(root, tags);
+			}
 		}
 		return tags;
 	}

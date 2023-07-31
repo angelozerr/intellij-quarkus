@@ -76,6 +76,16 @@ public class QuarkusProjectService implements ClasspathResourceChangedManager.Li
 	}
 
 	public VirtualFile getSchema(Module module) {
+		LightVirtualFile l = new LightVirtualFile() {
+
+			@Override
+			public @NotNull CharSequence getContent() {
+				return super.getContent();
+			}
+		};
+		if (l != null){
+			// return l;
+		}
 		var schemaEntry = schemas.get(module);
 		if (schemaEntry == null || !schemaEntry.getRight()) {
 			VirtualFile file = computeSchema(module, schemaEntry != null ? schemaEntry.getLeft() : null);

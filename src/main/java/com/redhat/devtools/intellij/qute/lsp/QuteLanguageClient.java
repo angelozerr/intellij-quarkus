@@ -127,8 +127,8 @@ public class QuteLanguageClient extends IndexAwareLanguageClient implements Qute
   @Override
   public CompletableFuture<DataModelProject<DataModelTemplate<DataModelParameter>>> getDataModelProject(
           QuteDataModelProjectParams params) {
-    return runAsBackground("getDataModel", monitor -> ReadAction.compute(() -> QuteSupportForTemplate.getInstance().getDataModelProject(params, PsiUtilsLSImpl.getInstance(getProject()),
-            monitor)));
+    return runAsBackground("getDataModel", monitor -> QuteSupportForTemplate.getInstance().getDataModelProject(params, PsiUtilsLSImpl.getInstance(getProject()),
+            monitor));
   }
 
   @Override
