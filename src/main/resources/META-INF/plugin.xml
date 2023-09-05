@@ -357,6 +357,7 @@
     <extensionPoint name="javaDefinitionParticipant" interface="com.redhat.devtools.intellij.lsp4mp4ij.psi.core.java.definition.IJavaDefinitionParticipant"/>
     <extensionPoint name="javaCompletionParticipant" interface="com.redhat.devtools.intellij.lsp4mp4ij.psi.core.java.completion.IJavaCompletionParticipant"/>
     <extensionPoint name="javaCodeLensParticipant" interface="com.redhat.devtools.intellij.lsp4mp4ij.psi.core.java.codelens.IJavaCodeLensParticipant"/>
+    <extensionPoint name="javaWorkspaceSymbolsParticipant" interface="com.redhat.devtools.intellij.lsp4mp4ij.psi.core.java.symbols.IJavaWorkspaceSymbolsParticipant"/>
     <extensionPoint name="configSourceProvider" interface="com.redhat.devtools.intellij.lsp4mp4ij.psi.core.project.IConfigSourceProvider"/>
     <extensionPoint name="javaASTValidator.validator" beanClass="com.redhat.devtools.intellij.lsp4mp4ij.psi.core.java.validators.JavaASTValidatorExtensionPointBean">
       <with attribute="implementation" implements="com.redhat.devtools.intellij.lsp4mp4ij.psi.core.java.validators.JavaASTValidator"/>
@@ -410,6 +411,8 @@
 
     <javaCodeLensParticipant implementation="com.redhat.devtools.intellij.lsp4mp4ij.psi.internal.jaxrs.java.JaxRsCodeLensParticipant"/>
     <javaCodeLensParticipant implementation="com.redhat.devtools.intellij.lsp4mp4ij.psi.internal.restclient.java.MicroProfileRestClientCodeLensParticipant"/>
+
+    <javaWorkspaceSymbolsParticipant implementation="com.redhat.devtools.intellij.lsp4mp4ij.psi.internal.jaxrs.java.JaxRsWorkspaceSymbolParticipant" />
 
     <javaCodeActionParticipant kind="quickfix"
                                targetDiagnostic="microprofile-config#NO_VALUE_ASSIGNED_TO_PROPERTY"

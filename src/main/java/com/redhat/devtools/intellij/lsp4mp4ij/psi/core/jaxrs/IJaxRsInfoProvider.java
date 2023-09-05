@@ -16,12 +16,10 @@ package com.redhat.devtools.intellij.lsp4mp4ij.psi.core.jaxrs;
 import java.util.List;
 import java.util.Set;
 
-import com.intellij.openapi.extensions.ExtensionPointName;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiFile;
-import com.redhat.devtools.intellij.lsp4mp4ij.psi.core.project.IConfigSourceProvider;
 import com.redhat.devtools.intellij.lsp4mp4ij.psi.core.utils.IPsiUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -43,10 +41,11 @@ public interface IJaxRsInfoProvider {
 	 * Returns a non-null set of all the classes in the given project that this provider can provide JAX-RS method information for.
 	 *
 	 * @param javaProject the project to check for JAX-RS method information
+	 * @param utils
 	 * @param monitor the progress monitor
 	 * @return a non-null set of all the classes in the given project that this provider can provide JAX-RS method information for
 	 */
-	@NotNull Set<PsiClass> getAllJaxRsClasses(@NotNull Module javaProject, @NotNull ProgressIndicator monitor);
+	@NotNull Set<PsiClass> getAllJaxRsClasses(@NotNull Module javaProject, IPsiUtils utils, @NotNull ProgressIndicator monitor);
 
 	/**
 	 * Returns a list of all the JAX-RS methods in the given type.

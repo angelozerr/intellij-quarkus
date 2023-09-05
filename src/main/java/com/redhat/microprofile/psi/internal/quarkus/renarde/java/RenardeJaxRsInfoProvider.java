@@ -45,7 +45,7 @@ public class RenardeJaxRsInfoProvider extends KeyedLazyInstanceEP<IJaxRsInfoProv
 	}
 
 	@Override
-	public Set<PsiClass> getAllJaxRsClasses(Module javaProject, ProgressIndicator monitor) {
+	public Set<PsiClass> getAllJaxRsClasses(Module javaProject, IPsiUtils utils, ProgressIndicator monitor) {
 		return RenardeUtils.getAllControllerClasses(javaProject, monitor);
 	}
 

@@ -61,13 +61,13 @@ public class RenardeJaxRsTest extends QuarkusMavenModuleImportingTestCase {
 				cl("http://localhost:8080/play/start", "", r(13, 4, 4)));
 	}
 
-	/*@Test
+	@Test
 	public void workspaceSymbols() throws Exception {
-		IJavaProject javaProject = loadMavenProject(quarkus_renarde_todo);
+		Module javaProject = loadMavenProject(QuarkusMavenProjectName.quarkus_renarde_todo);
 
 		assertNotNull(javaProject);
 
-		assertWorkspaceSymbols(javaProject, JDT_UTILS, //
+		assertWorkspaceSymbols(javaProject, PsiUtilsLSImpl.getInstance(myProject), //
 				si("@/: GET", r(20, 28, 33)), //
 				si("@/Application/endpoint: GET", r(34, 18, 26)), //
 				si("@/Application/test: POST", r(30, 16, 20)), //
@@ -85,6 +85,6 @@ public class RenardeJaxRsTest extends QuarkusMavenModuleImportingTestCase {
 				si("@/about: GET", r(25, 28, 33)), //
 				si("@/play/id: GET", r(9, 18, 26)), //
 				si("@/play/start: GET", r(13, 18, 23)));
-	}*/
+	}
 
 }

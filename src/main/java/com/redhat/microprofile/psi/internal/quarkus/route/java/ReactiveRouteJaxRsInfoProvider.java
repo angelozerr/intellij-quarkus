@@ -49,7 +49,7 @@ public class ReactiveRouteJaxRsInfoProvider extends KeyedLazyInstanceEP<IJaxRsIn
     }
 
     @Override
-    public Set<PsiClass> getAllJaxRsClasses(Module javaProject, ProgressIndicator monitor) {
+    public Set<PsiClass> getAllJaxRsClasses(Module javaProject, IPsiUtils utils, ProgressIndicator monitor) {
         // TODO: implement when LSP4IJ will support workspace symbols
         return Collections.emptySet();
     }

@@ -147,8 +147,8 @@ public class QuarkusLanguageClient extends IndexAwareLanguageClient implements M
         var coalesceBy = new CoalesceByKey("microprofile/projectInfo", params.getUri(), params.getScopes());
         String filePath = getFilePath(params.getUri());
         return runAsBackground("Computing MicroProfile properties for '" + filePath + "'.", monitor ->
-                PropertiesManager.getInstance().getMicroProfileProjectInfo(params, PsiUtilsLSImpl.getInstance(getProject()), monitor)
-        , coalesceBy);
+                        PropertiesManager.getInstance().getMicroProfileProjectInfo(params, PsiUtilsLSImpl.getInstance(getProject()), monitor)
+                , coalesceBy);
     }
 
     @Override
@@ -183,7 +183,7 @@ public class QuarkusLanguageClient extends IndexAwareLanguageClient implements M
     @Override
     public CompletableFuture<List<ProjectLabelInfoEntry>> getAllJavaProjectLabels() {
         var coalesceBy = new CoalesceByKey("microprofile/java/workspaceLabels");
-        return runAsBackground("Computing All Java projects labels", monitor -> ProjectLabelManager.getInstance().getProjectLabelInfo(PsiUtilsLSImpl.getInstance(getProject())),coalesceBy);
+        return runAsBackground("Computing All Java projects labels", monitor -> ProjectLabelManager.getInstance().getProjectLabelInfo(PsiUtilsLSImpl.getInstance(getProject())), coalesceBy);
     }
 
     @Override
@@ -194,13 +194,13 @@ public class QuarkusLanguageClient extends IndexAwareLanguageClient implements M
 
     @Override
     public CompletableFuture<List<MicroProfileDefinition>> getJavaDefinition(MicroProfileJavaDefinitionParams javaParams) {
-        var coalesceBy = new CoalesceByKey("microprofile/java/definition", javaParams.getUri(),javaParams.getPosition());
+        var coalesceBy = new CoalesceByKey("microprofile/java/definition", javaParams.getUri(), javaParams.getPosition());
         return runAsBackground("Computing Java definitions", monitor -> PropertiesManagerForJava.getInstance().definition(javaParams, PsiUtilsLSImpl.getInstance(getProject())), coalesceBy);
     }
 
     @Override
     public CompletableFuture<MicroProfileJavaCompletionResult> getJavaCompletion(MicroProfileJavaCompletionParams javaParams) {
-        var coalesceBy = new CoalesceByKey("microprofile/java/completion", javaParams.getUri(),javaParams.getPosition());
+        var coalesceBy = new CoalesceByKey("microprofile/java/completion", javaParams.getUri(), javaParams.getPosition());
         return runAsBackground("Computing Java completion", monitor -> {
             IPsiUtils utils = PsiUtilsLSImpl.getInstance(getProject());
             CompletionList completionList = PropertiesManagerForJava.getInstance().completion(javaParams, utils);
@@ -218,7 +218,7 @@ public class QuarkusLanguageClient extends IndexAwareLanguageClient implements M
     @Override
     public CompletableFuture<List<CodeAction>> getJavaCodeAction(MicroProfileJavaCodeActionParams javaParams) {
         var coalesceBy = new CoalesceByKey("microprofile/java/codeAction", javaParams.getUri());
-        return runAsBackground("Computing Java code actions", monitor -> (List<CodeAction>) PropertiesManagerForJava.getInstance().codeAction(javaParams, PsiUtilsLSImpl.getInstance(getProject())),coalesceBy);
+        return runAsBackground("Computing Java code actions", monitor -> (List<CodeAction>) PropertiesManagerForJava.getInstance().codeAction(javaParams, PsiUtilsLSImpl.getInstance(getProject())), coalesceBy);
     }
 
     @Override
@@ -238,8 +238,9 @@ public class QuarkusLanguageClient extends IndexAwareLanguageClient implements M
 
     @Override
     public CompletableFuture<List<SymbolInformation>> getJavaWorkspaceSymbols(String projectUri) {
-        //Workspace symbols not supported yet https://github.com/redhat-developer/intellij-quarkus/issues/808
-        return CompletableFuture.completedFuture(null);
+        var coalesceBy = new CoalesceByKey("microprofile/java/workspaceSymbols", projectUri);
+        return runAsBackground("Computing Java workspace symbols", monitor -> PropertiesManagerForJava.getInstance().workspaceSymbols(projectUri, PsiUtilsLSImpl.getInstance(getProject()), monitor), coalesceBy);
+
     }
 
     @Override

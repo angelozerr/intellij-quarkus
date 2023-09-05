@@ -43,13 +43,23 @@
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">
-    <applicationService serviceImplementation="com.redhat.devtools.intellij.lsp4ij.lifecycle.LanguageServerLifecycleManager"/>
-    <projectService serviceImplementation="com.redhat.devtools.intellij.lsp4ij.LanguageServiceAccessor"/>
-    <projectService serviceImplementation="com.redhat.devtools.intellij.lsp4ij.lifecycle.LanguageServerLifecycleManager"/>
-    <completion.contributor id="LSPCompletionContributor" language="any" implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.completion.LSPCompletionContributor" order="first"/>
-    <gotoDeclarationHandler implementation="com.redhat.devtools.intellij.lsp4ij.operations.navigation.LSPGotoDeclarationHandler"/>
-    <gotoDeclarationHandler implementation="com.redhat.devtools.intellij.lsp4ij.operations.documentLink.LSPDocumentLinkGotoDeclarationHandler"/>
-    <highlightUsagesHandlerFactory implementation="com.redhat.devtools.intellij.lsp4ij.operations.highlight.LSPHighlightUsagesHandlerFactory"/>
+    <applicationService
+            serviceImplementation="com.redhat.devtools.intellij.lsp4ij.lifecycle.LanguageServerLifecycleManager"/>
+    <projectService
+            serviceImplementation="com.redhat.devtools.intellij.lsp4ij.LanguageServiceAccessor"/>
+    <projectService
+            serviceImplementation="com.redhat.devtools.intellij.lsp4ij.lifecycle.LanguageServerLifecycleManager"/>
+    <completion.contributor id="LSPCompletionContributor"
+                            language="any"
+                            implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.completion.LSPCompletionContributor" order="first"/>
+    <gotoDeclarationHandler
+            implementation="com.redhat.devtools.intellij.lsp4ij.operations.navigation.LSPGotoDeclarationHandler"/>
+    <gotoDeclarationHandler
+            implementation="com.redhat.devtools.intellij.lsp4ij.operations.documentLink.LSPDocumentLinkGotoDeclarationHandler"/>
+    <highlightUsagesHandlerFactory
+            implementation="com.redhat.devtools.intellij.lsp4ij.operations.highlight.LSPHighlightUsagesHandlerFactory"/>
+    <gotoSymbolContributor
+            implementation="com.redhat.devtools.intellij.lsp4ij.operations.symbols.LSPWorkspaceSymbolsContributor"/>
   </extensions>
 
   <applicationListeners>
