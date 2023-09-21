@@ -13,6 +13,10 @@
  *******************************************************************************/
 package com.redhat.devtools.intellij.lsp4ij.operations.diagnostics;
 
+import com.intellij.analysis.problemsView.FileProblem;
+import com.intellij.analysis.problemsView.Problem;
+import com.intellij.analysis.problemsView.ProblemsCollector;
+import com.intellij.analysis.problemsView.ProblemsProvider;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
@@ -28,7 +32,10 @@ import com.redhat.devtools.intellij.lsp4ij.LSPVirtualFileWrapper;
 import com.redhat.devtools.intellij.lsp4ij.LanguageServerWrapper;
 import com.redhat.devtools.intellij.lsp4ij.client.CoalesceByKey;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
 import java.util.function.Consumer;
 
 /**
@@ -89,5 +96,64 @@ public class LSPDiagnosticHandler implements Consumer<PublishDiagnosticsParams> 
             // {@link LSPDiagnosticAnnotator}.
             // which translates LSP Diagnostics into Intellij Annotation
             DaemonCodeAnalyzer.getInstance(project).restart(psiFile);
+        Problem p = new FileProblem() {
+            @NotNull
+            @Override
+            public VirtualFile getFile() {
+                return file;
+            }
+
+            @Override
+            public int getLine() {
+                return 0;
+            }
+
+            @Override
+            public int getColumn() {
+                return 0;
+            }
+
+            @NotNull
+            @Override
+            public ProblemsProvider getProvider() {
+                return new ProblemsProvider() {
+                    @Override
+                    public void dispose() {
+
+                    }
+
+                    @NotNull
+                    @Override
+                    public Project getProject() {
+                        return project;
+                    }
+                };
+            }
+
+            @NotNull
+            @Override
+            public String getText() {
+                return "XXXX";
+            }
+
+            @Nullable
+            @Override
+            public String getGroup() {
+                return null;
+            }
+
+            @Nullable
+            @Override
+            public String getDescription() {
+                return null;
+            }
+
+            @NotNull
+            @Override
+            public Icon getIcon() {
+                return null;
+            }
+        };
+        ProblemsCollector.getInstance(project).problemAppeared(p);
     }
 }
