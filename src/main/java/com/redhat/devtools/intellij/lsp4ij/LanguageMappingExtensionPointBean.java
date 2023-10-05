@@ -7,7 +7,7 @@ import com.intellij.util.xmlb.annotations.Attribute;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class LanguageMappingExtensionPointBean extends BaseKeyedLazyInstance<DocumentMatcher> {
+public class LanguageMappingExtensionPointBean extends BaseKeyedLazyInstance<DocumentMatcher> implements DocumentMatcherProvider {
 
     private static final DocumentMatcher DEFAULT_DOCUMENT_MATCHER = (file,project) -> true;
 
@@ -25,6 +25,7 @@ public class LanguageMappingExtensionPointBean extends BaseKeyedLazyInstance<Doc
     @Attribute("documentMatcher")
     public String documentMatcher;
 
+    @Override
     public @NotNull DocumentMatcher getDocumentMatcher() {
         try {
             return super.getInstance();

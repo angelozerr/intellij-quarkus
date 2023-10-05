@@ -285,22 +285,13 @@ public class LanguageServiceAccessor {
                     // or the server definition has been already added
                     continue;
                 }
-                if (mapping.shouldBeMatchedAsynchronously(fileProject)) {
-                    // Async mapping
-                    // Mapping must be done asynchronously because the match of DocumentMatcher of the mapping need to be done asynchronously
-                    // This usecase comes from for instance when custom match need to collect classes from the Java project and requires read only action.
-                    if (asyncMatchedDefinitions == null) {
-                        asyncMatchedDefinitions = new HashSet<>();
+
+                // Sync mapping
+                if (match(file, fileProject, mapping)) {
+                    if (syncMatchedDefinitions == null) {
+                        syncMatchedDefinitions = new HashSet<>();
                     }
-                    asyncMatchedDefinitions.add(mapping);
-                } else {
-                    // Sync mapping
-                    if (match(file, fileProject, mapping)) {
-                        if (syncMatchedDefinitions == null) {
-                            syncMatchedDefinitions = new HashSet<>();
-                        }
-                        syncMatchedDefinitions.add(mapping.getValue());
-                    }
+                    syncMatchedDefinitions.add(mapping.getValue());
                 }
             }
         }
@@ -333,7 +324,7 @@ public class LanguageServiceAccessor {
     }
 
     private static boolean match(VirtualFile file, Project fileProject, ContentTypeToLanguageServerDefinition mapping) {
-        if (ApplicationManager.getApplication().isUnitTestMode()) {
+        if (!ApplicationManager.getApplication().isReadAccessAllowed()) {
             return ReadAction.compute(() -> mapping.match(file, fileProject));
         }
         return mapping.match(file, fileProject);

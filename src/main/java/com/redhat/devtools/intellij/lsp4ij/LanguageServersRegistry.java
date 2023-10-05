@@ -195,7 +195,7 @@ public class LanguageServersRegistry {
         for (LanguageMappingExtensionPointBean extension : LanguageMappingExtensionPointBean.EP_NAME.getExtensions()) {
             Language language = Language.findLanguageByID(extension.language);
             if (language != null) {
-                languageMappings.add(new LanguageMapping(language, extension.id, extension.serverId, extension.getDocumentMatcher()));
+                languageMappings.add(new LanguageMapping(language, extension.id, extension.serverId, extension));
             }
         }
 
@@ -263,17 +263,17 @@ public class LanguageServersRegistry {
         @Nullable
         public final String languageId;
 
-        private final DocumentMatcher documentMatcher;
+        private final DocumentMatcherProvider documentMatcherProvider;
 
-        public LanguageMapping(@NotNull Language language, @Nullable String id, @Nullable String languageId,  @NotNull DocumentMatcher documentMatcher) {
+        public LanguageMapping(@NotNull Language language, @Nullable String id, @Nullable String languageId,  @NotNull DocumentMatcherProvider documentMatcherProvider) {
             this.language = language;
             this.id = id;
             this.languageId = languageId;
-            this.documentMatcher = documentMatcher;
+            this.documentMatcherProvider = documentMatcherProvider;
         }
 
         public DocumentMatcher getDocumentMatcher() {
-            return documentMatcher;
+            return documentMatcherProvider.getDocumentMatcher();
         }
     }
 
