@@ -10,21 +10,23 @@ import java.util.concurrent.CompletableFuture;
 
 public class ContentTypeToLanguageServerDefinition extends AbstractMap.SimpleEntry<Language, LanguageServersRegistry.LanguageServerDefinition> {
 
-    private final DocumentMatcher documentMatcher;
+    private DocumentMatcher documentMatcher;
+
+    private final DocumentMatcherProvider documentMatcherProvider;
 
     public ContentTypeToLanguageServerDefinition(@NotNull Language language,
                                                  @NotNull LanguageServersRegistry.LanguageServerDefinition provider,
-                                                 @NotNull DocumentMatcher documentMatcher) {
+                                                 @NotNull DocumentMatcherProvider documentMatcherProvider) {
         super(language, provider);
-        this.documentMatcher = documentMatcher;
+        this.documentMatcherProvider = documentMatcherProvider;
     }
 
     public boolean match(VirtualFile file, Project project) {
-        return documentMatcher.match(file, project);
+        return getDocumentMatcher().match(file, project);
     }
 
     public boolean shouldBeMatchedAsynchronously(Project project) {
-        return documentMatcher.shouldBeMatchedAsynchronously(project);
+        return getDocumentMatcher().shouldBeMatchedAsynchronously(project);
     }
 
     public boolean isEnabled() {
@@ -32,6 +34,13 @@ public class ContentTypeToLanguageServerDefinition extends AbstractMap.SimpleEnt
     }
 
     public @NotNull <R> CompletableFuture<Boolean> matchAsync(VirtualFile file, Project project) {
-        return documentMatcher.matchAsync(file, project);
+        return getDocumentMatcher().matchAsync(file, project);
+    }
+
+    public DocumentMatcher getDocumentMatcher() {
+        if (documentMatcher == null) {
+            documentMatcher = documentMatcherProvider.getDocumentMatcher();
+        }
+        return documentMatcher;
     }
 }

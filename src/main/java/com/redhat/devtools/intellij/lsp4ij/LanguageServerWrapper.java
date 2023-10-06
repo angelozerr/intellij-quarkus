@@ -351,7 +351,8 @@ public class LanguageServerWrapper implements Disposable {
                                 // To avoid having some lock problem when message is written in the stream output
                                 // (when there are a lot of messages to write it)
                                 // we consume the message in async mode
-                                CompletableFuture.runAsync(() -> consumer.consume(message));
+                                //CompletableFuture.runAsync(() ->
+                                        consumer.consume(message); //);
                             } catch (Throwable e) {
                                 // Log in the LSP console the error
                                 getLanguageServerLifecycleManager().onError(this, e);

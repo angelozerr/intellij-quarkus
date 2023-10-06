@@ -56,12 +56,12 @@ public class LanguageServerExplorerLifecycleListener implements LanguageServerLi
         if (explorer.isDisposed()) {
             return;
         }
-        LanguageServerProcessTreeNode processTreeNode = updateServerStatus(languageServer, null, false);
         ServerTrace serverTrace = getServerTrace(explorer.getProject(), languageServer.serverDefinition.id);
         if (serverTrace == ServerTrace.off) {
             return;
         }
 
+        LanguageServerProcessTreeNode processTreeNode = updateServerStatus(languageServer, null, false);
         TracingMessageConsumer tracing = getLSPRequestCacheFor(languageServer);
         String log = tracing.log(message, messageConsumer, serverTrace);
         invokeLater(() -> showMessage(processTreeNode, log));

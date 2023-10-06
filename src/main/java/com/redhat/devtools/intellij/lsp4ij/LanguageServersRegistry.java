@@ -238,7 +238,7 @@ public class LanguageServersRegistry {
             serverDefinition.registerAssociation(language, languageId);
         }
 
-        connections.add(new ContentTypeToLanguageServerDefinition(language, serverDefinition, mapping.getDocumentMatcher()));
+        connections.add(new ContentTypeToLanguageServerDefinition(language, serverDefinition, mapping.getDocumentMatcherProvider()));
     }
 
     public @Nullable
@@ -272,8 +272,8 @@ public class LanguageServersRegistry {
             this.documentMatcherProvider = documentMatcherProvider;
         }
 
-        public DocumentMatcher getDocumentMatcher() {
-            return documentMatcherProvider.getDocumentMatcher();
+        public DocumentMatcherProvider getDocumentMatcherProvider() {
+            return documentMatcherProvider;
         }
     }
 

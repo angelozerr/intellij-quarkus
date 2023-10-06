@@ -60,8 +60,8 @@ public class LanguageServiceAccessor {
         }
 
         // Collect started (or not) language servers which matches the given file.
-        CompletableFuture<Collection<LanguageServerWrapper>> matchedServers = getMatchedLanguageServersWrappers(file);
-        if (matchedServers.isDone() && matchedServers.getNow(Collections.emptyList()).isEmpty()) {
+        Collection<LanguageServerWrapper> matchedServers = getMatchedLanguageServersWrappers(file);
+        if (matchedServers.isEmpty()) {
             // None language servers matches the given file
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
@@ -69,8 +69,7 @@ public class LanguageServiceAccessor {
         // Returns the language servers which match the given file, start them and connect the file to each matched language server
         final List<LanguageServerItem> servers = Collections.synchronizedList(new ArrayList<>());
         try {
-            return matchedServers
-                    .thenComposeAsync(result -> CompletableFuture.allOf(result
+            return CompletableFuture.allOf(matchedServers
                             .stream()
                             .map(wrapper ->
                                     wrapper.getInitializedServer()
@@ -87,7 +86,7 @@ public class LanguageServiceAccessor {
                                                 if (server != null) {
                                                     servers.add(new LanguageServerItem(server, wrapper));
                                                 }
-                                            })).toArray(CompletableFuture[]::new)))
+                                            })).toArray(CompletableFuture[]::new))
                     .thenApply(theVoid -> servers);
         } catch (final ProcessCanceledException cancellation) {
             throw cancellation;
@@ -159,15 +158,15 @@ public class LanguageServiceAccessor {
     }
 
     @NotNull
-    private CompletableFuture<Collection<LanguageServerWrapper>> getMatchedLanguageServersWrappers(@NotNull VirtualFile file) {
+    private Collection<LanguageServerWrapper> getMatchedLanguageServersWrappers(@NotNull VirtualFile file) {
         final Project fileProject = LSPIJUtils.getProject(file);
         if (fileProject == null) {
-            return CompletableFuture.completedFuture(Collections.emptyList());
+            return Collections.emptyList();
         }
         MatchedLanguageServerDefinitions mappings = getMatchedLanguageServerDefinitions(file, fileProject);
         if (mappings == MatchedLanguageServerDefinitions.NO_MATCH) {
             // There are no mapping for the given file
-            return CompletableFuture.completedFuture(Collections.emptyList());
+            return Collections.emptyList();
         }
 
         LinkedHashSet<LanguageServerWrapper> matchedServers = new LinkedHashSet<>();
@@ -176,16 +175,7 @@ public class LanguageServiceAccessor {
         var serverDefinitions = mappings.getMatched();
         collectLanguageServersFromDefinition(file, fileProject, serverDefinitions, matchedServers);
 
-        CompletableFuture<Set<LanguageServersRegistry.LanguageServerDefinition>> async = mappings.getAsyncMatched();
-        if (async != null) {
-            // Collect async server definitions
-            return async
-                    .thenApply(asyncServerDefinitions -> {
-                        collectLanguageServersFromDefinition(file, fileProject, asyncServerDefinitions, matchedServers);
-                        return matchedServers;
-                    });
-        }
-        return CompletableFuture.completedFuture(matchedServers);
+        return matchedServers;
     }
 
     /**
@@ -287,7 +277,7 @@ public class LanguageServiceAccessor {
                 }
 
                 // Sync mapping
-                if (match(file, fileProject, mapping)) {
+                if (true) { // match(file, fileProject, mapping)) {
                     if (syncMatchedDefinitions == null) {
                         syncMatchedDefinitions = new HashSet<>();
                     }
