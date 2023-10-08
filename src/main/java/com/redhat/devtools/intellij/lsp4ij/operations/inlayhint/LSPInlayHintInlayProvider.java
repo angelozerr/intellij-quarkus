@@ -22,6 +22,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
@@ -30,6 +31,7 @@ import com.redhat.devtools.intellij.lsp4ij.AbstractLSPInlayProvider;
 import com.redhat.devtools.intellij.lsp4ij.LSPIJUtils;
 import com.redhat.devtools.intellij.lsp4ij.LanguageServiceAccessor;
 import com.redhat.devtools.intellij.lsp4ij.internal.CancellationSupport;
+import com.redhat.devtools.intellij.lsp4ij.operations.codelens.LSPCodelensInlayProvider;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageServer;
@@ -55,6 +57,8 @@ import java.util.stream.Collectors;
 public class LSPInlayHintInlayProvider extends AbstractLSPInlayProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(LSPInlayHintInlayProvider.class);
 
+    private static final Key<InlayHintsSink> SINK_KEY = new Key<>(LSPInlayHintInlayProvider.class.getName());
+
     @Nullable
     @Override
     public InlayHintsCollector getCollectorFor(@NotNull PsiFile psiFile,
@@ -64,6 +68,14 @@ public class LSPInlayHintInlayProvider extends AbstractLSPInlayProvider {
         return new FactoryInlayHintsCollector(editor) {
             @Override
             public boolean collect(@NotNull PsiElement psiElement, @NotNull Editor editor, @NotNull InlayHintsSink inlayHintsSink) {
+                InlayHintsSink sink = editor.getUserData(SINK_KEY);
+                if (sink != null) {
+                    if (sink== inlayHintsSink) {
+                        return false;
+                    }
+                }
+                editor.putUserData(SINK_KEY, inlayHintsSink);
+
                 Project project = psiElement.getProject();
                 if (project.isDisposed()) {
                     // The project has been closed, don't collect inlay hints.

@@ -22,6 +22,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
@@ -58,6 +59,8 @@ import java.util.stream.Collectors;
 public class LSPCodelensInlayProvider extends AbstractLSPInlayProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(LSPCodelensInlayProvider.class);
 
+    private static final Key<InlayHintsSink> SINK_KEY = new Key<>(LSPCodelensInlayProvider.class.getName());
+
     @Nullable
     @Override
     public InlayHintsCollector getCollectorFor(@NotNull PsiFile psiFile,
@@ -67,11 +70,20 @@ public class LSPCodelensInlayProvider extends AbstractLSPInlayProvider {
         return new FactoryInlayHintsCollector(editor) {
             @Override
             public boolean collect(@NotNull PsiElement psiElement, @NotNull Editor editor, @NotNull InlayHintsSink inlayHintsSink) {
+                InlayHintsSink sink = editor.getUserData(SINK_KEY);
+                if (sink != null) {
+                    if (sink== inlayHintsSink) {
+                        return false;
+                    }
+                }
+                editor.putUserData(SINK_KEY, inlayHintsSink);
+
                 Project project = psiElement.getProject();
                 if (project.isDisposed()) {
                     // The project has been closed, don't collect code lenses.
                     return false;
                 }
+
                 Document document = editor.getDocument();
                 final CancellationSupport cancellationSupport = new CancellationSupport();
                 try {
