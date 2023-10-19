@@ -94,6 +94,7 @@ public class QuteSupportForTemplate {
 	private static final Pattern GRADLE_TEST_MODULE_PATTERN = Pattern.compile("\\..*test", Pattern.CASE_INSENSITIVE);
 
 	private boolean isTestModule(Module module) {
+
 		return GRADLE_TEST_MODULE_PATTERN.matcher(module.getName()).find();
 	}
 

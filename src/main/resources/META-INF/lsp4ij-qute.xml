@@ -23,6 +23,9 @@
     <languageMapping language="JAVA"
                      serverId="qute"
                      documentMatcher="com.redhat.devtools.intellij.qute.lsp.QuteDocumentMatcherForJavaFile"/>
+    <languageMapping language="kotlin"
+                     serverId="qute"
+                     documentMatcher="com.redhat.devtools.intellij.qute.lsp.QuteDocumentMatcherForJavaFile"/>
     <serverIconProvider serverId="qute" class="com.redhat.devtools.intellij.quarkus.lang.QuarkusServerIconProvider" />
   </extensions>
 

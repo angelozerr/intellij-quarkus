@@ -56,14 +56,22 @@
     <lang.documentationProvider id="LSPTextHoverProperties" language="Properties" implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.documentation.LSPDocumentationProvider" order="first"/>
     <externalAnnotator language="Properties"
                        implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.diagnostics.LSPDiagnosticAnnotator"/>
+    <codeInsight.inlayProvider language="Properties"
+                               implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.inlayhint.LSPInlayHintInlayProvider"/>
+
     <lang.documentationProvider id="LSPTextHoverJAVA" language="JAVA" implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.documentation.LSPDocumentationProvider" order="first"/>
     <codeInsight.inlayProvider language="JAVA" implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.codelens.LSPCodelensInlayProvider"/>
     <externalAnnotator language="JAVA"
                        implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.diagnostics.LSPDiagnosticAnnotator"/>
     <externalAnnotator language="JAVA"
                        implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.documentLink.LSPDocumentLinkAnnotator"/>
-    <codeInsight.inlayProvider language="Properties"
-                               implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.inlayhint.LSPInlayHintInlayProvider"/>
+
+    <lang.documentationProvider id="LSPTextHoverKotlin" language="kotlin" implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.documentation.LSPDocumentationProvider" order="first"/>
+    <codeInsight.inlayProvider language="kotlin" implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.codelens.LSPCodelensInlayProvider"/>
+    <externalAnnotator language="kotlin"
+                       implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.diagnostics.LSPDiagnosticAnnotator"/>
+    <externalAnnotator language="kotlin"
+                       implementationClass="com.redhat.devtools.intellij.lsp4ij.operations.documentLink.LSPDocumentLinkAnnotator"/>
 
 
     <localInspection

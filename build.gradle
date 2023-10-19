@@ -14,7 +14,7 @@ targetCompatibility = '11'
 
 intellij {
     version = ideaVersion //for a full list of IntelliJ IDEA releases please see https://www.jetbrains.com/intellij-repository/releases
-    plugins = ['java', 'maven', 'gradle-java', 'properties', 'yaml', 'com.redhat.devtools.intellij.telemetry:1.0.0.44']
+    plugins = ['java', 'Kotlin', 'maven', 'gradle-java', 'properties', 'yaml', 'com.redhat.devtools.intellij.telemetry:1.0.0.44']
     pluginName = 'Quarkus Tools'
     updateSinceUntilBuild = false
 }
@@ -135,6 +135,9 @@ tasks.withType(Copy) {
 }
 
 dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:0.33.0"
+    compileOnly "com.pinterest.ktlint:ktlint-core:0.33.0"
+
     implementation 'org.zeroturnaround:zt-zip:1.14'
     implementation 'com.kotcrab.remark:remark:1.2.0'
     implementation 'org.jsoup:jsoup:1.14.2'

@@ -31,6 +31,7 @@ import com.redhat.devtools.intellij.qute.psi.utils.TemplatePathInfo;
 import org.eclipse.lsp4j.Range;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.jps.model.java.JavaResourceRootType;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -38,6 +39,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -211,7 +213,8 @@ public abstract class AbstractQuteTemplateLinkCollector extends JavaRecursiveEle
 		VirtualFile @NotNull [] roots = ModuleRootManager.getInstance(project).getContentRoots();
 		String templatePath = templateFilePathWithoutExtension.endsWith(suffix)? templateFilePathWithoutExtension : templateFilePathWithoutExtension +suffix;
 		Arrays.sort(roots, Comparator.comparingInt(r -> r.getPath().length()));//put root with smallest path first (eliminates generated sources roots)
-		for(VirtualFile root : ModuleRootManager.getInstance(project).getContentRoots()) {
+		List<VirtualFile> resourcesDirs = ModuleRootManager.getInstance(project).getSourceRoots(JavaResourceRootType.RESOURCE);
+		for(VirtualFile root : resourcesDirs) {
 			URI templateUri = mergeURI(LSPIJUtils.toUri(root), templatePath);
 			VirtualFile templateFile = LSPIJUtils.findResourceFor(templateUri);
 			if (templateFile != null && templateFile.exists()) {
