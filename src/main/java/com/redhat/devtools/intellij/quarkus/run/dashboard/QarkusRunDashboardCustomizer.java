@@ -8,7 +8,7 @@
  * Contributors:
  * Red Hat, Inc. - initial API and implementation
  ******************************************************************************/
-package com.redhat.devtools.intellij.quarkus.run;
+package com.redhat.devtools.intellij.quarkus.run.dashboard;
 
 import com.intellij.execution.RunnerAndConfigurationSettings;
 import com.intellij.execution.dashboard.RunDashboardCustomizer;
@@ -17,12 +17,14 @@ import com.intellij.execution.process.ProcessHandler;
 import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.ide.projectView.PresentationData;
+import com.intellij.ide.util.treeView.AbstractTreeNode;
 import com.intellij.ui.SimpleTextAttributes;
+import com.redhat.devtools.intellij.quarkus.run.QuarkusRunConfiguration;
+import com.redhat.devtools.intellij.quarkus.run.QuarkusRunContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Dashboard customizer for Quarkus to provide:
@@ -66,10 +68,33 @@ public class QarkusRunDashboardCustomizer extends RunDashboardCustomizer {
                         BrowserUtil.browse(applicationUrl);
                     }
                 });
+
+                final String devUIUrl = runContext.getDevUIURL();
+                links.put(devUIUrl, new Runnable() {
+                    @Override
+                    public void run() {
+                        BrowserUtil.browse(devUIUrl);
+                    }
+                });
                 node.putUserData(RunDashboardCustomizer.NODE_LINKS, links);
             }
         }
         return true;
     }
+
+    @Override
+    public @Nullable Collection<? extends AbstractTreeNode<?>> getChildren(@NotNull RunDashboardRunConfigurationNode node) {
+        List<AbstractTreeNode<?>> children = new ArrayList<>();
+        RunContentDescriptor descriptor = node.getDescriptor();
+        if (descriptor != null) {
+            ProcessHandler processHandler = descriptor.getProcessHandler();
+            if (processHandler != null && !processHandler.isProcessTerminated()) {
+                OpenDevUITreeNode child = new OpenDevUITreeNode(node.getProject(), (QuarkusRunConfiguration) node.getConfigurationSettings().getConfiguration());
+                children.add(child);
+            }
+        }
+        return children;
+    }
+
 
 }
