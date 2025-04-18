@@ -1,0 +1,76 @@
+plugins {
+    id 'java'
+    id 'io.quarkus'
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+    implementation 'io.quarkus:quarkus-resteasy-reactive-qute'
+    implementation 'io.quarkus:quarkus-arc'
+    testImplementation 'io.quarkus:quarkus-junit5'
+}
+
+group 'org.acme'
+version '1.0.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+test {
+    systemProperty "java.util.logging.manager", "org.jboss.logmanager.LogManager"
+}
+compileJava {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-parameters'
+}
+
+compileTestJava {
+    options.encoding = 'UTF-8'
+}
+
+configurations {quarkusDeployment}
+dependencies {
+quarkusDeployment 'io.quarkus:quarkus-qute-deployment:3.4.3'
+quarkusDeployment 'io.quarkus:quarkus-vertx-deployment:3.4.3'
+quarkusDeployment 'io.quarkus:quarkus-vertx-http-deployment:3.4.3'
+quarkusDeployment 'io.quarkus:quarkus-resteasy-reactive-common-deployment:3.4.3'
+quarkusDeployment 'io.quarkus:quarkus-netty-deployment:3.4.3'
+quarkusDeployment 'io.quarkus:quarkus-resteasy-reactive-qute-deployment:3.4.3'
+quarkusDeployment 'io.quarkus:quarkus-mutiny-deployment:3.4.3'
+quarkusDeployment 'io.quarkus:quarkus-core-deployment:3.4.3'
+quarkusDeployment 'io.quarkus:quarkus-smallrye-context-propagation-deployment:3.4.3'
+quarkusDeployment 'io.quarkus:quarkus-arc-deployment:3.4.3'
+quarkusDeployment 'io.quarkus:quarkus-jsonp-deployment:3.4.3'
+quarkusDeployment 'io.quarkus:quarkus-resteasy-reactive-deployment:3.4.3'
+quarkusDeployment 'io.quarkus:quarkus-virtual-threads-deployment:3.4.3'
+}
+task listQuarkusDependencies() {
+    File f = new File('C:\\Users\\azerr\\AppData\\Local\\Temp\\5150979550899185006.txt')
+    f.withPrintWriter('UTF8') { writer ->
+        configurations.quarkusDeployment.incoming.artifacts.each {
+            writer.println it.id.componentIdentifier
+            writer.println it.file
+        }
+        def componentIds = configurations.quarkusDeployment.incoming.resolutionResult.allDependencies.collect { it.selected.id }
+        ArtifactResolutionResult result = dependencies.createArtifactResolutionQuery()
+            .forComponents(componentIds)
+            .withArtifacts(JvmLibrary, SourcesArtifact)
+            .execute()
+        result.resolvedComponents.each { ComponentArtifactsResult component ->
+            Set<ArtifactResult> sources = component.getArtifacts(SourcesArtifact)
+            sources.each { ArtifactResult ar ->
+                if (ar instanceof ResolvedArtifactResult) {
+                    writer.println ar.id.componentIdentifier
+                    writer.println ar.file
+                }
+            }
+        }
+    }
+}
