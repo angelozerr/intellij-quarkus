@@ -142,6 +142,7 @@ public class QuarkusRunConfiguration extends ModuleBasedConfiguration<RunConfigu
             telemetryData.put("tool", toolDelegate.getDisplay());
             boolean debug = DefaultDebugExecutor.EXECUTOR_ID.equals(executor.getId());
             Integer debugPort = debug ? allocateLocalPort() : null;
+            Integer quteDebugPort = debug ? allocateLocalPort() : null;
             // The parameter (run/debug) executor is filled according the run/debug action
             // but in the case of Gradle, the executor must be only the run executor
             // otherwise for some reason, the stop button will stop the task without stopping the Quarkus application process.
@@ -149,7 +150,7 @@ public class QuarkusRunConfiguration extends ModuleBasedConfiguration<RunConfigu
             Executor overridedExecutor = toolDelegate.getOverridedExecutor();
             executor = overridedExecutor != null ? overridedExecutor : executor;
             // Create a Gradle or Maven run configuration in memory
-            RunnerAndConfigurationSettings settings = toolDelegate.getConfigurationDelegate(module, this, debugPort);
+            RunnerAndConfigurationSettings settings = toolDelegate.getConfigurationDelegate(module, this, debugPort, quteDebugPort);
             if (settings != null) {
                 QuarkusRunConfigurationManager.getInstance(module.getProject()); // to be sure that Quarkus execution listener is registered
                 long groupId = ExecutionEnvironment.getNextUnusedExecutionId();

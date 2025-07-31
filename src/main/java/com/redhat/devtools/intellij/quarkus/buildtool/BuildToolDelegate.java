@@ -186,12 +186,14 @@ public interface BuildToolDelegate {
      * @param module        the module.
      * @param configuration the quarkus configuration.
      * @param debugPort     the debug port tu use if Quarkus application must be debugged and null otherwise.
+     * @param quteDebugPort
      * @return the configuration delegate (Gradle,Maven).
      */
     @Nullable
     RunnerAndConfigurationSettings getConfigurationDelegate(@NotNull Module module,
                                                             @NotNull QuarkusRunConfiguration configuration,
-                                                            @Nullable Integer debugPort);
+                                                            @Nullable Integer debugPort,
+                                                            @Nullable Integer quteDebugPort);
 
     /**
      * Add project import listener.
