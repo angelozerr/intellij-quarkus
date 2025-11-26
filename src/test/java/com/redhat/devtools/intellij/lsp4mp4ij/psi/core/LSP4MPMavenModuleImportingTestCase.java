@@ -19,22 +19,33 @@ import com.redhat.devtools.intellij.MavenModuleImportingTestCase;
 import com.redhat.devtools.intellij.quarkus.QuarkusDeploymentSupport;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Base class to import lsp4mp maven project.
  */
 public abstract class LSP4MPMavenModuleImportingTestCase extends MavenModuleImportingTestCase {
 
+    private static final Map<String, Module> loadedProjects = new HashMap<>();
+
     protected Module loadMavenProject(String projectName) throws Exception {
         return loadMavenProject(projectName, false);
     }
 
     protected Module loadMavenProject(String projectName, boolean collectAndAddQuarkusDeploymentDependencies) throws Exception {
-        Module module = createMavenModule(new File("projects/lsp4mp/projects/maven/" + projectName));
+        String projectPath = "projects/lsp4mp/projects/maven/" + projectName;
+        Module module = loadedProjects.get(projectPath);
+        if (module != null) {
+            return module;
+        }
+
+        module = createMavenModule(new File(projectPath));
         if(collectAndAddQuarkusDeploymentDependencies) {
             QuarkusDeploymentSupport.getInstance(getTestFixture().getProject()).updateClasspathWithQuarkusDeployment(module, new EmptyProgressIndicator());
         }
         IndexingTestUtil.waitUntilIndexesAreReady(getTestFixture().getProject());
+        loadedProjects.put(projectPath, module);
         return module;
     }
 }
