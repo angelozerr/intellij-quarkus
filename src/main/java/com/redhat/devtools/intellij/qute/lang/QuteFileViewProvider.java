@@ -13,9 +13,12 @@ package com.redhat.devtools.intellij.qute.lang;
 import com.intellij.lang.Language;
 import com.intellij.lang.LanguageParserDefinitions;
 import com.intellij.lang.ParserDefinition;
+import com.intellij.lang.html.HTMLLanguage;
+import com.intellij.lang.java.JavaLanguage;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.fileTypes.LanguageFileType;
+import com.intellij.openapi.fileTypes.PlainTextLanguage;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.MultiplePsiFilesPerDocumentFileViewProvider;
 import com.intellij.psi.PsiFile;
@@ -57,7 +60,11 @@ public class QuteFileViewProvider extends MultiplePsiFilesPerDocumentFileViewPro
     public static @NotNull Language getTemplateLanguage(@NotNull VirtualFile file) {
         @Nullable String fileExtension = file.getExtension();
         FileType fileType = fileExtension != null ? FileTypeManager.getInstance().getFileTypeByExtension(fileExtension) : null;
-        return fileType instanceof LanguageFileType ? ((LanguageFileType) fileType).getLanguage() : QuteLanguage.INSTANCE;
+        var language = fileType instanceof LanguageFileType ? ((LanguageFileType) fileType).getLanguage() : QuteLanguage.INSTANCE;
+        if (language.is(JavaLanguage.INSTANCE)) {
+            return PlainTextLanguage.INSTANCE;
+        }
+        return language;
     }
 
     protected PsiFile createFile(@NotNull Language lang) {

@@ -10,6 +10,8 @@
  ******************************************************************************/
 package com.redhat.devtools.intellij.qute.run;
 
+import com.intellij.lang.injection.InjectedLanguageManager;
+import com.intellij.lang.java.JavaLanguage;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
@@ -51,10 +53,22 @@ public class QuteDebugAdapterVariableSupport extends DebugAdapterVariableSupport
         if (psiFile == null) {
             return null;
         }
-        var element = psiFile.findElementAt(offset);
+        var element0 = psiFile.findElementAt(offset);
+        boolean injected = psiFile.getLanguage().is(JavaLanguage.INSTANCE);
+        var element = injected?
+                InjectedLanguageManager.getInstance(project).findInjectedElementAt(psiFile, offset) :
+                element0;
         if (element == null || !QuteLanguage.isQuteLanguage(element.getLanguage())) {
             return null;
         }
+        TextRange textRange = getTextRange(element);
+        if (injected) {
+            return InjectedLanguageManager.getInstance(project).injectedToHost(element, textRange);
+        }
+        return textRange;
+    }
+
+    private static TextRange getTextRange(PsiElement element) {
         // It is a Qute element
         if (element instanceof QuteToken quteToken) {
             // Qute Token coming from RedHat Quarkus
@@ -108,7 +122,6 @@ public class QuteDebugAdapterVariableSupport extends DebugAdapterVariableSupport
         }
         return null;
     }
-
     private static @Nullable IElementType getTokenType(@Nullable PsiElement element) {
         if (element == null) {
             return null;
