@@ -41,6 +41,10 @@
                          serverId="qute"
                          documentMatcher="com.redhat.devtools.intellij.qute.lsp.QuteDocumentMatcherForJavaFile"
                          languageId="java"/>
+        <languageMapping language="kotlin"
+                         serverId="qute"
+                         documentMatcher="com.redhat.devtools.intellij.qute.lsp.QuteDocumentMatcherForJavaFile"
+                         languageId="java"/>
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij">

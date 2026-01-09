@@ -11,16 +11,6 @@
  *******************************************************************************/
 package com.redhat.devtools.intellij.qute.psi.internal.template.datamodel;
 
-import static com.redhat.devtools.intellij.qute.psi.internal.QuteJavaConstants.*;
-import static com.redhat.devtools.intellij.qute.psi.utils.PsiQuteProjectUtils.getTemplatePath;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CancellationException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.IndexNotReadyException;
@@ -32,7 +22,6 @@ import com.redhat.devtools.intellij.qute.psi.template.datamodel.AbstractAnnotati
 import com.redhat.devtools.intellij.qute.psi.template.datamodel.SearchContext;
 import com.redhat.devtools.intellij.qute.psi.utils.AnnotationUtils;
 import com.redhat.devtools.intellij.qute.psi.utils.PsiTypeUtils;
-
 import com.redhat.devtools.intellij.qute.psi.utils.TemplateNameStrategy;
 import com.redhat.devtools.intellij.qute.psi.utils.TemplatePathInfo;
 import com.redhat.qute.commons.datamodel.DataModelBaseTemplate;
@@ -40,6 +29,17 @@ import com.redhat.qute.commons.datamodel.DataModelFragment;
 import com.redhat.qute.commons.datamodel.DataModelParameter;
 import com.redhat.qute.commons.datamodel.DataModelTemplate;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.uast.*;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static com.redhat.devtools.intellij.qute.psi.internal.QuteJavaConstants.*;
+import static com.redhat.devtools.intellij.qute.psi.utils.PsiQuteProjectUtils.getTemplatePath;
 
 /**
  * CheckedTemplate support for template files:
@@ -71,29 +71,64 @@ public class CheckedTemplateSupport extends AbstractAnnotationTypeReferenceDataM
 
     private static final String[] ANNOTATION_NAMES = {CHECKED_TEMPLATE_ANNOTATION, OLD_CHECKED_TEMPLATE_ANNOTATION};
 
-    @Override
-    protected String[] getAnnotationNames() {
-        return ANNOTATION_NAMES;
-    }
-
-    @Override
-    protected void processAnnotation(PsiElement javaElement, PsiAnnotation checkedTemplateAnnotation, String annotationName,
-                                     SearchContext context, ProgressIndicator monitor) {
-        if (javaElement instanceof PsiClass type && !type.isRecord()) {
-            boolean ignoreFragments = isIgnoreFragments(checkedTemplateAnnotation);
-            String basePath = getBasePath(checkedTemplateAnnotation);
-            TemplateNameStrategy templateNameStrategy = getDefaultName(checkedTemplateAnnotation);
-            collectDataModelTemplateForCheckedTemplate(type, context.getRelativeTemplateBaseDir(), basePath, ignoreFragments, templateNameStrategy, context.getTypeResolver(type),
-                    context.getDataModelProject().getTemplates(), monitor);
-        }
-    }
-
     public static PsiAnnotation getCheckedAnnotation(PsiJvmModifiersOwner node) {
         for (PsiAnnotation annotation : node.getAnnotations()) {
             if (AnnotationUtils.isMatchAnnotation(annotation, CHECKED_TEMPLATE_ANNOTATION)
                     || AnnotationUtils.isMatchAnnotation(annotation, OLD_CHECKED_TEMPLATE_ANNOTATION)) {
                 return annotation;
             }
+        }
+        return null;
+    }
+
+    /**
+     * Returns true if @CheckedTemplate annotation declares that fragment must be
+     * ignored and false otherwise.
+     *
+     * <code>
+     *
+     * @param checkedTemplateAnnotation the CheckedTemplate annotation.
+     * @return true if @CheckedTemplate annotation declares that fragment must be
+     * ignored and false otherwise.
+     * @CheckedTemplate(ignoreFragments=true) </code>
+     */
+    public static boolean isIgnoreFragments(@Nullable UAnnotation checkedTemplateAnnotation) {
+        if (checkedTemplateAnnotation == null) {
+            return false;
+        }
+
+        try {
+            UExpression valueExpr = checkedTemplateAnnotation.findAttributeValue("ignoreFragments");
+            if (valueExpr != null) {
+                Object value = valueExpr instanceof UCallExpression callExpr ? callExpr.evaluate() : valueExpr.evaluate();
+                if (value instanceof Boolean b) return b;
+            }
+        } catch (IndexNotReadyException | CancellationException e) {
+            throw e;
+        } catch (Exception ignored) {
+            // Do nothing
+        }
+        return false;
+    }
+
+    /**
+     * Returns the basePath declared in @CheckedTemplate annotation or null.
+     *
+     * @param checkedTemplateAnnotation the CheckedTemplate annotation.
+     * @return the basePath or null
+     * @CheckedTemplate(basePath="...")
+     */
+    public static String getBasePath(@Nullable UAnnotation checkedTemplateAnnotation) {
+        try {
+            UExpression valueExpr = checkedTemplateAnnotation.findAttributeValue("basePath");
+            if (valueExpr != null) {
+                Object value = valueExpr instanceof UCallExpression callExpr ? callExpr.evaluate() : valueExpr.evaluate();
+                if (value instanceof String s) return s;
+            }
+        } catch (IndexNotReadyException | CancellationException e) {
+            throw e;
+        } catch (Exception ignored) {
+            // Do nothing
         }
         return null;
     }
@@ -196,6 +231,50 @@ public class CheckedTemplateSupport extends AbstractAnnotationTypeReferenceDataM
                 // Do nothing
             }
         }
+        return templateNameStrategy;
+    }
+
+    /**
+     * Returns the <code>defaultName</code> value declared in the @CheckedTemplate annotation.
+     * <code>
+     *
+     * @param checkedTemplateAnnotation the CheckedTemplate annotation.
+     * @return the <code>defaultName</code> value declared in the @CheckedTemplate annotation
+     * @CheckedTemplate(defaultName="somewhere")
+     * </code>
+     */
+    public static TemplateNameStrategy getDefaultName(@Nullable UAnnotation checkedTemplateAnnotation) {
+        TemplateNameStrategy templateNameStrategy = TemplateNameStrategy.ELEMENT_NAME;
+
+        if (checkedTemplateAnnotation != null) {
+            try {
+                UExpression valueExpr = checkedTemplateAnnotation.findAttributeValue("defaultName");
+                if (valueExpr != null) {
+                    Object value = valueExpr instanceof UCallExpression callExpr ? callExpr.evaluate() : valueExpr.evaluate();
+
+                    // Si la valeur est un champ référencé (comme une constante)
+                    if (valueExpr instanceof UReferenceExpression refExpr && value == null) {
+                        Object constValue = refExpr.resolve() instanceof com.intellij.psi.PsiField field
+                                ? field.computeConstantValue()
+                                : null;
+                        if (constValue != null) {
+                            value = constValue;
+                        }
+                    }
+
+                    if (value instanceof String s) {
+                        templateNameStrategy = getDefaultName(s.toString());
+                    }
+                }
+            } catch (ProcessCanceledException e) {
+                throw e;
+            } catch (IndexNotReadyException | CancellationException e) {
+                throw e;
+            } catch (Exception ignored) {
+                // Do nothing
+            }
+        }
+
         return templateNameStrategy;
     }
 
@@ -341,5 +420,22 @@ public class CheckedTemplateSupport extends AbstractAnnotationTypeReferenceDataM
         parameter.setKey(parameterName);
         parameter.setSourceType(parameterType);
         return parameter;
+    }
+
+    @Override
+    protected String[] getAnnotationNames() {
+        return ANNOTATION_NAMES;
+    }
+
+    @Override
+    protected void processAnnotation(PsiElement javaElement, PsiAnnotation checkedTemplateAnnotation, String annotationName,
+                                     SearchContext context, ProgressIndicator monitor) {
+        if (javaElement instanceof PsiClass type && !type.isRecord()) {
+            boolean ignoreFragments = isIgnoreFragments(checkedTemplateAnnotation);
+            String basePath = getBasePath(checkedTemplateAnnotation);
+            TemplateNameStrategy templateNameStrategy = getDefaultName(checkedTemplateAnnotation);
+            collectDataModelTemplateForCheckedTemplate(type, context.getRelativeTemplateBaseDir(), basePath, ignoreFragments, templateNameStrategy, context.getTypeResolver(type),
+                    context.getDataModelProject().getTemplates(), monitor);
+        }
     }
 }

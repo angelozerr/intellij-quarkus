@@ -21,14 +21,19 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.redhat.devtools.intellij.lsp4mp4ij.psi.core.utils.IPsiUtils;
+import com.redhat.devtools.intellij.qute.psi.internal.AnnotationLocationSupport;
 import com.redhat.devtools.intellij.qute.psi.internal.QuteJavaConstants;
 import com.redhat.devtools.intellij.qute.psi.utils.*;
 import com.redhat.devtools.lsp4ij.LSPIJUtils;
-import com.redhat.devtools.intellij.lsp4mp4ij.psi.core.utils.IPsiUtils;
-import com.redhat.devtools.intellij.qute.psi.internal.AnnotationLocationSupport;
 import org.eclipse.lsp4j.Range;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.uast.UClass;
+import org.jetbrains.uast.UField;
+import org.jetbrains.uast.UFile;
+import org.jetbrains.uast.UastContextKt;
+import org.jetbrains.uast.visitor.AbstractUastVisitor;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -36,13 +41,14 @@ import java.util.concurrent.CancellationException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.redhat.devtools.intellij.qute.psi.internal.QuteJavaConstants.*;
+import static com.redhat.devtools.intellij.qute.psi.internal.QuteJavaConstants.TEMPLATE_CLASS;
+import static com.redhat.devtools.intellij.qute.psi.internal.QuteJavaConstants.TEMPLATE_CONTENTS_ANNOTATION;
 import static com.redhat.devtools.intellij.qute.psi.internal.template.datamodel.CheckedTemplateSupport.*;
 import static com.redhat.devtools.intellij.qute.psi.utils.PsiQuteProjectUtils.*;
 
 /**
  * Abstract class which collects {@link PsiMethod} or
- * {@link com.intellij.psi.PsiField} which defines a Qute template link:
+ * {@link PsiField} which defines a Qute template link:
  *
  * <ul>
  * <li>declared methods which have class annotated with @CheckedTemplate.</li>
@@ -51,9 +57,9 @@ import static com.redhat.devtools.intellij.qute.psi.utils.PsiQuteProjectUtils.*;
  *
  * @author Angelo ZERR
  */
-public abstract class AbstractQuteTemplateLinkCollector extends JavaRecursiveElementVisitor {
+public abstract class AbstractQuteTemplateLinkCollector2 extends AbstractUastVisitor {
 
-    private static final Logger LOGGER = Logger.getLogger(AbstractQuteTemplateLinkCollector.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(AbstractQuteTemplateLinkCollector2.class.getName());
 
     private static String[] suffixes = {".qute.html", ".qute.json", ".qute.txt", ".qute.yaml", ".html", ".json",
             ".txt", ".yaml"};
@@ -71,7 +77,7 @@ public abstract class AbstractQuteTemplateLinkCollector extends JavaRecursiveEle
 
     private PsiFile compilationUnit;
 
-    public AbstractQuteTemplateLinkCollector(PsiFile typeRoot, IPsiUtils utils, ProgressIndicator monitor) {
+    public AbstractQuteTemplateLinkCollector2(PsiFile typeRoot, IPsiUtils utils, ProgressIndicator monitor) {
         this.typeRoot = typeRoot;
         this.compilationUnit = typeRoot;
         this.utils = utils;
@@ -80,6 +86,22 @@ public abstract class AbstractQuteTemplateLinkCollector extends JavaRecursiveEle
         VirtualFile resourcesDir = findBestResourcesDir(utils.getModule());
         this.templatesDir = resourcesDir != null ? resourcesDir.findFileByRelativePath(TEMPLATES_FOLDER_NAME) : null;
         this.relativeTemplatesBaseDir = PsiQuteProjectUtils.getRelativeTemplateBaseDir(utils.getModule(), resourcesDir);
+    }
+
+    /**
+     * Entry point.
+     *
+     * Converts the {@link PsiFile} to {@link UFile} and starts traversal.
+     */
+    public final void collect() {
+        try {
+            UFile uFile = UastContextKt.toUElement(typeRoot, UFile.class);
+            if (uFile != null) {
+                uFile.accept(this);
+            }
+        } catch (IndexNotReadyException | CancellationException e) {
+            throw e;
+        }
     }
 
     /**
@@ -94,7 +116,7 @@ public abstract class AbstractQuteTemplateLinkCollector extends JavaRecursiveEle
      * Integration</a>
      */
     @Override
-    public void visitField(@NotNull PsiField node) {
+    public boolean visitField(@NotNull UField node) {
         PsiType type = node.getType();
         if (isTemplateType(type)) {
             // The field type is the Qute template
@@ -120,7 +142,7 @@ public abstract class AbstractQuteTemplateLinkCollector extends JavaRecursiveEle
             String fieldName = node.getName();
             collectTemplateLink(null, node, locationExpression, getTypeDeclaration(node), null, fieldName, false, TemplateNameStrategy.ELEMENT_NAME);
         }
-        super.visitField(node);
+        return super.visitField(node);
     }
 
     /**
@@ -138,12 +160,13 @@ public abstract class AbstractQuteTemplateLinkCollector extends JavaRecursiveEle
     }
 
     @Override
-    public void visitClass(PsiClass node) {
+    public boolean visitClass(UClass node) {
         if (node.isRecord()) {
             visitRecordType(node);
         } else {
             visitClassType(node);
         }
+        return true;
     }
 
     /**
@@ -158,7 +181,7 @@ public abstract class AbstractQuteTemplateLinkCollector extends JavaRecursiveEle
      * "https://quarkus.io/guides/qute-reference#typesafe_templates">TypeSafe
      * Templates</a>
      */
-    private void visitClassType(PsiClass node) {
+    private void visitClassType(UClass node) {
         levelTypeDecl++;
         PsiAnnotation checkedAnnotation = getCheckedAnnotation(node);
         if (checkedAnnotation != null) {
@@ -352,9 +375,6 @@ public abstract class AbstractQuteTemplateLinkCollector extends JavaRecursiveEle
                                                 String className, String fieldOrMethodName, String location, VirtualFile templateFile, TemplatePathInfo templatePathInfo);
 
     private static boolean isTemplateType(PsiType type) {
-        if (type instanceof PsiClassReferenceType referenceType) {
-            referenceType.resolve();
-        }
         if (type instanceof PsiClassType) {
             PsiClass clazz = ((PsiClassType) type).resolve();
             if (clazz != null) {

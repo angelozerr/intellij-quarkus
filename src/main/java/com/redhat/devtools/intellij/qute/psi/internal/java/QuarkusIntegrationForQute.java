@@ -37,8 +37,7 @@ public class QuarkusIntegrationForQute {
 			return Collections.emptyList();
 		}
 		List<CodeLens> lenses = new ArrayList<>();
-		PsiFile cu = typeRoot;
-		cu.accept(new QuteJavaCodeLensCollector(typeRoot, lenses, utils, monitor));
+		new QuteJavaCodeLensCollector2(typeRoot, lenses, utils, monitor).collect();
 		return lenses;
 	}
 
