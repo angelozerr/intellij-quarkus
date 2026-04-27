@@ -514,6 +514,17 @@
                           implementationClass="com.redhat.devtools.intellij.qute.lang.QuteLanguageSubstitutor"/>
         <lang.substitutor language="Markdown"
                           implementationClass="com.redhat.devtools.intellij.qute.lang.QuteLanguageSubstitutor"/>
+        <!-- Roq template substitutor for debug-only support in target/roq-templates -->
+        <lang.substitutor language="HTML"
+                          implementationClass="com.redhat.devtools.intellij.qute.lang.RoqTemplateLanguageSubstitutor"/>
+        <lang.substitutor language="TEXT"
+                          implementationClass="com.redhat.devtools.intellij.qute.lang.RoqTemplateLanguageSubstitutor"/>
+        <lang.substitutor language="JSON"
+                          implementationClass="com.redhat.devtools.intellij.qute.lang.RoqTemplateLanguageSubstitutor"/>
+        <lang.substitutor language="yaml"
+                          implementationClass="com.redhat.devtools.intellij.qute.lang.RoqTemplateLanguageSubstitutor"/>
+        <lang.substitutor language="Markdown"
+                          implementationClass="com.redhat.devtools.intellij.qute.lang.RoqTemplateLanguageSubstitutor"/>
         <typedHandler implementation="com.redhat.devtools.intellij.qute.editor.QuteTypedHandler"/>
         <multiHostInjector implementation="com.redhat.devtools.intellij.qute.lang.injector.QuteLanguageInjector"/>
     </extensions>

@@ -94,7 +94,7 @@ public class QuteDebugAdapterVariableSupport extends DebugAdapterVariableSupport
                 .findInjectedElementAt(psiFile, offset)
                 : psiFile.findElementAt(offset);
 
-        if (element == null || !QuteLanguage.isQuteLanguage(element.getLanguage())) {
+        if (element == null || !QuteLanguage.isQuteDebuggableLanguage(element.getLanguage())) {
             return null;
         }
 

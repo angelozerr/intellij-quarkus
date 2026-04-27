@@ -43,7 +43,7 @@ public class QuteDebugAdapterDescriptorFactory extends DebugAdapterDescriptorFac
     @Override
     public boolean isDebuggableFile(@NotNull VirtualFile file, @NotNull Project project) {
         Language language = LSPIJUtils.getFileLanguage(file, project);
-        return QuteLanguage.isQuteLanguage(language);
+        return QuteLanguage.isQuteDebuggableLanguage(language);
     }
 
     @Override

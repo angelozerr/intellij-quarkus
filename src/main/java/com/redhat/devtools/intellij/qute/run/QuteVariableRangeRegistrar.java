@@ -33,7 +33,7 @@ public class QuteVariableRangeRegistrar extends DefaultVariableRangeRegistrar {
             TextRange textRange = new TextRange(start, end);
             String variableName = document.getText(textRange);
             context.addVariableRange(variableName, textRange);
-        } else if (QuteLanguage.isQuteLanguage(tokenType.getLanguage())) {
+        } else if (QuteLanguage.isQuteDebuggableLanguage(tokenType.getLanguage())) {
             if (!(tokenType instanceof QuteTokenType)) {
                 if (isTokenType(tokenType, QUTE_JETBRAINS_IDENTIFIER)) {
                     TextRange textRange = new TextRange(start, end);

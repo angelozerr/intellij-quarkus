@@ -39,6 +39,20 @@ public class QuteLanguage extends Language implements TemplateLanguage, Injectab
     }
 
     public static boolean isQuteLanguage(@Nullable Language language) {
-        return language != null && (QuteLanguage.INSTANCE.is(language) || QUTE_LANGUAGE_ID_FROM_JETBRAINS.equals(language.getID()));
+        return language != null && (QuteLanguage.INSTANCE.is(language) ||
+                                     QUTE_LANGUAGE_ID_FROM_JETBRAINS.equals(language.getID()));
+    }
+
+    /**
+     * Checks if the given language is a Qute language that supports debugging (breakpoints).
+     * This includes:
+     * - Regular Qute language (Qute_) with full LSP support
+     * - Debug-only Qute language (QuteDebugOnly) for generated templates without LSP support
+     *
+     * @param language the language to check
+     * @return true if the language supports Qute debugging, false otherwise
+     */
+    public static boolean isQuteDebuggableLanguage(@Nullable Language language) {
+        return isQuteLanguage(language) || QuteDebugOnlyLanguage.INSTANCE.is(language);
     }
 }

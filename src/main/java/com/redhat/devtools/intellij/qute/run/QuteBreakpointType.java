@@ -155,7 +155,7 @@ public class QuteBreakpointType extends DAPBreakpointTypeBase<XBreakpointPropert
             return false;
         }
 
-        if (QuteLanguage.isQuteLanguage(language)) {
+        if (QuteLanguage.isQuteDebuggableLanguage(language)) {
             return true;
         }
 
