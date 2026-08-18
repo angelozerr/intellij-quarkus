@@ -327,10 +327,6 @@ You can also download and install CI builds of the latest commits or a specific 
 - scroll down and download the `Quarkus Tools <version>.zip` file
 - install `Quarkus Tools <version>.zip` into IntelliJ IDEA by following these [instructions](https://www.jetbrains.com/help/idea/managing-plugins.html#install_plugin_from_disk).
 
-Data and Telemetry
-==================
-The JetBrains IntelliJ Quarkus Tools plugin collects anonymous [usage data](USAGE_DATA.md) and sends it to Red Hat servers to help improve our products and services. Read our [privacy statement](https://developers.redhat.com/article/tool-data-collection) to learn more. This extension respects the Red Hat Telemetry setting which you can learn more about at [https://github.com/redhat-developer/intellij-redhat-telemetry#telemetry-reporting](https://github.com/redhat-developer/intellij-redhat-telemetry#telemetry-reporting)
-
 ## Articles
 
  * [A recap of Quarkus Tools for IntelliJ's latest improvements](https://quarkus.io/blog/intellij-quarkus-recap/)

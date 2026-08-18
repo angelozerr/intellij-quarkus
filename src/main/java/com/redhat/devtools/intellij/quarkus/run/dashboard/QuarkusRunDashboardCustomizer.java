@@ -25,8 +25,6 @@ import com.redhat.devtools.intellij.lsp4mp4ij.psi.core.project.PsiMicroProfilePr
 import com.redhat.devtools.intellij.lsp4mp4ij.psi.core.project.PsiMicroProfileProjectManager;
 import com.redhat.devtools.intellij.quarkus.QuarkusModuleUtil;
 import com.redhat.devtools.intellij.quarkus.run.QuarkusRunConfiguration;
-import com.redhat.devtools.intellij.quarkus.telemetry.TelemetryEventName;
-import com.redhat.devtools.intellij.quarkus.telemetry.TelemetryManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -83,24 +81,8 @@ public class QuarkusRunDashboardCustomizer extends RunDashboardCustomizer {
                     presentation.addText(devUILabel, SimpleTextAttributes.LINK_ATTRIBUTES);
 
                     Map<Object, Object> links = new HashMap<>();
-                    links.put(applicationUrl, new SimpleColoredComponent.BrowserLauncherTag(applicationUrl) {
-                        @Override
-                        public void run() {
-                            // Open Quarkus application in a Web Browser
-                            super.run();
-                            // Send "ui-openApplication" telemetry event
-                            TelemetryManager.instance().send(TelemetryEventName.UI_OPEN_APPLICATION);
-                        }
-                    });
-                    links.put(devUILabel, new SimpleColoredComponent.BrowserLauncherTag(devUIUrl) {
-                        @Override
-                        public void run() {
-                            // Open DevUI in a Web Browser
-                            super.run();
-                            // Send "ui-openDevUI" telemetry event
-                            TelemetryManager.instance().send(TelemetryEventName.UI_OPEN_DEV_UI);
-                        }
-                    });
+                    links.put(applicationUrl, new SimpleColoredComponent.BrowserLauncherTag(applicationUrl));
+                    links.put(devUILabel, new SimpleColoredComponent.BrowserLauncherTag(devUIUrl));
                     updateLinks(node, links);
                 }
             }

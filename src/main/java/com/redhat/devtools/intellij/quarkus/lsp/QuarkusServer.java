@@ -15,8 +15,6 @@ import com.intellij.openapi.application.PluginPathManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.redhat.devtools.intellij.lsp4mp4ij.settings.UserDefinedMicroProfileSettings;
-import com.redhat.devtools.intellij.quarkus.telemetry.TelemetryEventName;
-import com.redhat.devtools.intellij.quarkus.telemetry.TelemetryManager;
 import com.redhat.devtools.lsp4ij.server.JavaProcessCommandBuilder;
 import com.redhat.devtools.lsp4ij.server.OSProcessStreamConnectionProvider;
 import org.jetbrains.annotations.NotNull;
@@ -41,9 +39,6 @@ public class QuarkusServer extends OSProcessStreamConnectionProvider {
         commands.add("org.eclipse.lsp4mp.ls.MicroProfileServerLauncher");
         commands.add("-DrunAsync=true");
         super.setCommandLine(new GeneralCommandLine(commands));
-
-        // Send "ls-start" telemetry event
-        TelemetryManager.instance().send(TelemetryEventName.LSP_START_MICROPROFILE_SERVER);
     }
 
     @Override

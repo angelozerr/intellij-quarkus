@@ -34,8 +34,6 @@ import com.intellij.util.messages.MessageBusConnection;
 import com.redhat.devtools.intellij.lsp4mp4ij.classpath.ClasspathResourceChangedManager;
 import com.redhat.devtools.intellij.quarkus.buildtool.BuildToolDelegate;
 import com.redhat.devtools.intellij.quarkus.search.QuarkusDeploymentProjectService;
-import com.redhat.devtools.intellij.quarkus.telemetry.TelemetryEventName;
-import com.redhat.devtools.intellij.quarkus.telemetry.TelemetryManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -112,20 +110,12 @@ public class QuarkusDeploymentSupport implements ClasspathResourceChangedManager
                         Library library = table.getLibraryByName(QuarkusConstants.QUARKUS_DEPLOYMENT_LIBRARY_NAME);
                         while (library != null) {
                             table.removeLibrary(library);
-
-                            // Send "model-removeLibrary" telemetry event
-                            TelemetryManager.instance().send(TelemetryEventName.MODEL_REMOVE_LIBRARY);
-
                             library = table.getLibraryByName(QuarkusConstants.QUARKUS_DEPLOYMENT_LIBRARY_NAME);
                         }
                         progressIndicator.checkCanceled();
                         progressIndicator.setText("Adding in ''" + module.getName() + "'' Quarkus deployment dependencies to classpath...");
                         List<VirtualFile>[] files = toolDelegate.getDeploymentFiles(module, progressIndicator);
                         LOGGER.info("Adding library to " + module.getName() + " previousHash=" + previousHash + " newHash=" + actualHash);
-
-                        // Send "model-addLibrary" telemetry event
-                        TelemetryManager.instance().send(TelemetryEventName.MODEL_ADD_LIBRARY);
-
                         addLibrary(model, files);
                     });
                     projectService.setHash(module, actualHash);

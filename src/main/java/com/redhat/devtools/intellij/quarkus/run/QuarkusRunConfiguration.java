@@ -28,8 +28,6 @@ import com.intellij.psi.util.CachedValuesManager;
 import com.intellij.util.net.NetUtils;
 import com.redhat.devtools.intellij.quarkus.QuarkusModuleUtil;
 import com.redhat.devtools.intellij.quarkus.buildtool.BuildToolDelegate;
-import com.redhat.devtools.intellij.quarkus.telemetry.TelemetryEventName;
-import com.redhat.devtools.intellij.quarkus.telemetry.TelemetryManager;
 import com.redhat.devtools.intellij.qute.psi.utils.PsiTypeUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,7 +36,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 
 import static com.intellij.execution.runners.ExecutionUtil.createEnvironment;
@@ -126,13 +123,9 @@ public class QuarkusRunConfiguration extends ModuleBasedConfiguration<RunConfigu
         if (module == null) {
             return null;
         }
-        Map<String, String> telemetryData = new HashMap<>();
-        telemetryData.put("kind", executor.getId());
-
         BuildToolDelegate toolDelegate = BuildToolDelegate.getDelegate(module);
         RunProfileState state = null;
         if (toolDelegate != null) {
-            telemetryData.put("tool", toolDelegate.getDisplay());
             boolean debug = DefaultDebugExecutor.EXECUTOR_ID.equals(executor.getId());
             Integer debugPort = debug ? allocateLocalPort() : null;
             if (debugPort != null) {
@@ -152,11 +145,7 @@ public class QuarkusRunConfiguration extends ModuleBasedConfiguration<RunConfigu
                 long groupId = ExecutionEnvironment.getNextUnusedExecutionId();
                 state = doRunConfiguration(settings, executor, DefaultExecutionTarget.INSTANCE, groupId);
             }
-        } else {
-            telemetryData.put("tool", "not found");
         }
-        // Send "run-run" telemetry event
-        TelemetryManager.instance().send(TelemetryEventName.RUN_RUN, telemetryData);
         return state;
     }
 

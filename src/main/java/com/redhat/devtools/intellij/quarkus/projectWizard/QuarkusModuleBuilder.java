@@ -23,9 +23,6 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.newvfs.RefreshQueue;
 import com.redhat.devtools.intellij.quarkus.QuarkusConstants;
-import com.redhat.devtools.intellij.quarkus.telemetry.TelemetryEventName;
-import com.redhat.devtools.intellij.quarkus.telemetry.TelemetryManager;
-import com.redhat.devtools.intellij.telemetry.core.service.TelemetryMessageBuilder;
 import org.jdom.JDOMException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -91,12 +88,8 @@ public class QuarkusModuleBuilder extends JavaModuleBuilder {
             processDownload();
             Module module = super.createModule(moduleModel);
             wizardContext.getUserData(QuarkusConstants.WIZARD_TOOL_KEY).processImport(module);
-            // Send "ui-wizard" telemetry event with no error
-            TelemetryManager.instance().send(TelemetryEventName.UI_WIZARD);
             return module;
         } catch (IOException | InvalidDataException | ModuleWithNameAlreadyExists | JDOMException | ConfigurationException e) {
-            // Send "ui-wizard" telemetry event with error
-            TelemetryManager.instance().send(TelemetryEventName.UI_WIZARD, e);
             throw e;
         }
     }
