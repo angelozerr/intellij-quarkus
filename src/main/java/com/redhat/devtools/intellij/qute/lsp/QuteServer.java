@@ -14,8 +14,6 @@ import com.intellij.execution.configurations.GeneralCommandLine;
 import com.intellij.openapi.application.PluginPathManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.redhat.devtools.intellij.quarkus.telemetry.TelemetryEventName;
-import com.redhat.devtools.intellij.quarkus.telemetry.TelemetryManager;
 import com.redhat.devtools.intellij.qute.settings.UserDefinedQuteSettings;
 import com.redhat.devtools.lsp4ij.server.JavaProcessCommandBuilder;
 import com.redhat.devtools.lsp4ij.server.OSProcessStreamConnectionProvider;
@@ -40,9 +38,6 @@ public class QuteServer extends OSProcessStreamConnectionProvider {
                 .create();
         commands.add("-DrunAsync=true");
         super.setCommandLine(new GeneralCommandLine(commands));
-
-        // Send "ls-startQute" telemetry event
-        TelemetryManager.instance().send(TelemetryEventName.LSP_START_QUTE_SERVER);
     }
 
     @Override
