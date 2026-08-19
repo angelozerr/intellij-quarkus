@@ -294,8 +294,19 @@ public class PsiQuteProjectUtils {
             // Local file system
             Path templatePath = Paths.get(file.getPath());
             for (TemplateRootPath rootPath : projectInfo.getTemplateRootPaths()) {
-                if (rootPath.isIncluded(templatePath)) {
-                    return true;
+                try {
+                    if (rootPath.isIncluded(templatePath)) {
+                        return true;
+                    }
+                } catch (IllegalArgumentException e) {
+                    // TemplateRootPath.isIncluded() delegates to FileUtils.createPath()
+                    // which decodes %23 → # before URI parsing, causing
+                    // "URI has a fragment component" for paths containing '#'.
+                    // Fallback: parse the baseDir URI directly (preserving %23 encoding).
+                    // See https://github.com/redhat-developer/intellij-quarkus/issues/1611
+                    if (isIncludedFallback(templatePath, rootPath)) {
+                        return true;
+                    }
                 }
             }
             return false;
@@ -304,13 +315,32 @@ public class PsiQuteProjectUtils {
         // Ex: WSL
         URI templatePath = LSPIJUtils.toUri(file);
         for (TemplateRootPath rootPath : projectInfo.getTemplateRootPaths()) {
-            URI rootPathUri = URI.create(rootPath.getBaseDir());
-            if (uriIncludes(rootPathUri, templatePath)) {
-                return true;
+            try {
+                URI rootPathUri = URI.create(rootPath.getBaseDir());
+                if (uriIncludes(rootPathUri, templatePath)) {
+                    return true;
+                }
+            } catch (IllegalArgumentException e) {
+                // See https://github.com/redhat-developer/intellij-quarkus/issues/1611
             }
         }
 
         return false;
+    }
+
+    /**
+     * Fallback for {@link TemplateRootPath#isIncluded(Path)} when the upstream
+     * {@code FileUtils.createPath()} fails due to incorrectly decoding %23 → #
+     * before URI parsing. We parse the baseDir URI ourselves (preserving %23 encoding)
+     * so that '#' in directory names does not break path resolution.
+     */
+    private static boolean isIncludedFallback(@NotNull Path templatePath, @NotNull TemplateRootPath rootPath) {
+        try {
+            Path basePath = Paths.get(URI.create(rootPath.getBaseDir()));
+            return templatePath.startsWith(basePath);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static boolean uriIncludes(URI parent, URI child) {
