@@ -6,6 +6,20 @@
     </vendor>
 
     <change-notes><![CDATA[
+    <h3>2.6.0</h3>
+    <ul>
+      <li>Compatibility with IntelliJ Platform 2026.2</li>
+      <li>Add support for Gradle 9</li>
+      <li>Remove Telemetry</li>
+      <li>Use cancellable ReadAction for better performance</li>
+      <li>Fixed duplicate Quarkus config property metadata</li>
+      <li>Fixed IllegalArgumentException: URI has a fragment component</li>
+      <li>Fixed null module in BuildToolDelegate.getDelegate</li>
+      <li>Fixed properties file full mode</li>
+      <li>Documentation for Roq and Quarkus Tools for IntelliJ</li>
+    </ul>
+    Learn more in the <a href="https://github.com/redhat-developer/intellij-quarkus/milestone/54?closed=1">changelog</a>.
+
     <h3>2.5.0</h3>
     <ul>
       <li><b>Roq Support:</b> Full support for Roq static site generator (YAML frontmatter, layouts, themes, data files, fragments)</li>
