@@ -6,6 +6,12 @@
     </vendor>
 
     <change-notes><![CDATA[
+    <h3>2.6.1</h3>
+    <ul>
+      <li>Use LSP4MP 0.18.0 which migrates to LSP4J 1.0.0, fixing broken hover, completion and definition in microprofile-config.properties and application.properties</li>
+    </ul>
+    Learn more in the <a href="https://github.com/redhat-developer/intellij-quarkus/milestone/55?closed=1">changelog</a>.
+
     <h3>2.6.0</h3>
     <ul>
       <li>Compatibility with IntelliJ Platform 2026.2</li>
